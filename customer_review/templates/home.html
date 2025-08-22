@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - Review Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="profile">
+            <a href="{{ url_for('profile') }}" class="username">{{ username }}</a>
+            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <p class="{{ category }}">{{ message }}</p>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Review Data Input -->
+        <div class="card">
+            <h3>Upload Review Dataset (CSV)</h3>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="file" name="file" accept=".csv" required>
+                <button type="submit">Upload</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h3>Or Paste Raw Review Text</h3>
+            <form method="POST">
+                <textarea name="raw_text" rows="5" cols="60" placeholder="Paste your review text here"></textarea><br><br>
+                <button type="submit">Save Text</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

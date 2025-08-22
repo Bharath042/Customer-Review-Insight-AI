@@ -1,0 +1,126 @@
+/* Reset some browser defaults */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Roboto", Arial, sans-serif;
+}
+
+/* Body background & layout */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #f1f3f4;
+    color: #5d7ad2;
+}
+
+/* Login form container */
+form {
+    background: #fff;
+    padding: 40px 35px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+    width: 360px;
+    text-align: center;
+}
+
+/* Page title */
+h2 {
+    margin-bottom: 25px;
+    font-weight: 500;
+    color: #202124;
+    text-align: center;
+}
+
+/* Labels */
+label {
+    display: block;
+    text-align: left;
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: #5f6368;
+}
+
+/* Input fields */
+input[type="text"],
+input[type="password"],
+input[type="email"] {
+    width: 100%;
+    padding: 12px 14px;
+    margin-bottom: 20px;
+    border: 1px solid #dadce0;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus {
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 2px rgba(26,115,232,0.2);
+}
+
+/* Button */
+button {
+    width: 100%;
+    padding: 12px;
+    background: #1a73e8;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+button:hover {
+    background: #1765cc;
+}
+
+/* Register link under button */
+.register-text {
+    margin-top: 15px;
+    font-size: 14px;
+    color: #5f6368;
+    text-align: center;
+}
+
+.register-text a {
+    color: #1a73e8;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.register-text a:hover {
+    text-decoration: underline;
+}
+
+/* Flash messages */
+.flash-messages {
+    margin-top: 20px;
+    list-style: none;
+    padding: 0;
+    width: 360px;
+}
+
+.flash-messages li {
+    background: #fce8e6;
+    color: #d93025;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+/* Success flash (green) */
+.flash-messages li.success {
+    background: #e6f4ea;
+    color: #137333;
+}
