@@ -10,8 +10,11 @@
     <!-- Header -->
     <div class="header">
         <div class="profile">
-            <a href="{{ url_for('profile') }}" class="username">{{ username }}</a>
-            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+            <span class="welcome-text">Welcome, {{ username }}</span>
+            <div class="nav-buttons">
+                <a href="{{ url_for('main.profile') }}" class="home-btn">Profile</a>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
+            </div>
         </div>
     </div>
 

@@ -1,134 +1,224 @@
-/* Reset */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: "Roboto", Arial, sans-serif;
-}
-
-/* Body background & layout */
+/* General Body Styles */
 body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f0f2f5;
     display: flex;
     justify-content: center;
     align-items: center;
-    flex-direction: column;
     min-height: 100vh;
-    background-color: #f1f3f4;
-    color: #202124;
+    margin: 0;
+    padding: 20px 0;
 }
 
-/* Register form container */
-form {
-    background: #fff;
-    padding: 40px 35px;
+/* Main Registration Container */
+.register-container {
+    background-color: #ffffff;
+    padding: 2.5rem;
     border-radius: 10px;
-    box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
-    width: 360px;
-    text-align: center;
-}
-
-/* Page title */
-h2 {
-    margin-bottom: 25px;
-    font-weight: 500;
-    color: #202124;
-    text-align: center;
-}
-
-/* Labels */
-label {
-    display: block;
-    text-align: left;
-    margin-bottom: 6px;
-    font-size: 14px;
-    color: #5f6368;
-}
-
-/* Input fields */
-input[type="text"],
-input[type="password"],
-input[type="email"] {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     width: 100%;
-    padding: 12px 14px;
-    margin-bottom: 20px;
-    border: 1px solid #dadce0;
-    border-radius: 6px;
-    font-size: 14px;
+    max-width: 500px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.register-container h2 {
+    margin-bottom: 1.5rem;
+    color: #333;
+    font-weight: 600;
+    font-size: 1.75rem;
+}
+
+/* Form Styling */
+.form-group {
+    margin-bottom: 1.25rem;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #555;
+    font-size: 0.9rem;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-sizing: border-box;
+    font-size: 1rem;
+    font-family: 'Poppins', sans-serif;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.form-group input::placeholder {
+    color: #aaa;
+}
+
+.form-group input:focus {
     outline: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
 }
 
-input[type="text"]:focus,
-input[type="password"]:focus,
-input[type="email"]:focus {
-    border-color: #1a73e8;
-    box-shadow: 0 0 0 2px rgba(26,115,232,0.2);
-}
-
-/* Button */
+/* Button Styling */
 button {
     width: 100%;
-    padding: 12px;
-    background: #1a73e8;
+    padding: 0.8rem;
+    background: linear-gradient(90deg, #007bff, #0056b3);
     color: #fff;
-    font-size: 15px;
-    font-weight: 500;
     border: none;
-    border-radius: 6px;
+    border-radius: 5px;
     cursor: pointer;
-    transition: background 0.2s ease;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 button:hover {
-    background: #1765cc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Login link under button */
-.login-text {
-    margin-top: 30px;
-    font-size: 14px;
-    color: #5f6368;
-    text-align: center;
+button:disabled {
+    background: #aab8c5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
-/* Also handle templates that use 'register-text' class name */
-.register-text {
-    margin-top: 30px;
-    font-size: 14px;
-    color: #5f6368;
-    text-align: center;
+/* Link to Login Page */
+.login-link {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    color: #666;
 }
 
-.login-text a {
-    color: #1a73e8;
-    font-weight: 500;
+.login-link a {
+    color: #007bff;
     text-decoration: none;
+    font-weight: 500;
 }
 
-.login-text a:hover {
+.login-link a:hover {
     text-decoration: underline;
 }
 
-/* Flash messages */
+/* Flashed Messages Styling */
 .flash-messages {
-    margin-top: 20px;
-    list-style: none;
-    padding: 0;
-    width: 360px;
+    margin-bottom: 1.25rem;
+    width: 100%;
 }
 
-.flash-messages li {
-    background: #fce8e6;
-    color: #d93025;
-    padding: 10px;
-    border-radius: 6px;
-    font-size: 13px;
-    margin-bottom: 10px;
+.flash {
+    padding: 0.75rem;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 0.9rem;
     text-align: center;
 }
 
-/* Success flash (green) */
-.flash-messages li.success {
-    background: #e6f4ea;
-    color: #137333;
+.flash.error, .flash.danger { background-color: #dc3545; }
+.flash.success { background-color: #28a745; }
+.flash.info { background-color: #17a2b8; }
+.flash.warning { background-color: #ffc107; color: #212529; }
+
+
+/* Validation Rule Text Styling */
+.rule {
+    transition: color 0.3s ease;
+    padding-left: 20px;
+    position: relative;
+    margin-bottom: 4px;
 }
+
+.rule.invalid { color: #dc3545; }
+.rule.invalid::before {
+    content: '✖';
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+.rule.valid { color: #28a745; }
+.rule.valid::before {
+    content: '✔';
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+/* Popover and Password Icon Styles */
+.password-group { position: relative; }
+.password-wrapper { position: relative; }
+.password-wrapper input { padding-right: 45px; }
+
+.toggle-password {
+    position: absolute;
+    top: 50%;
+    right: 15px; /* Position icon from the right edge */
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #999;
+}
+.toggle-password svg {
+    width: 18px; /* CORRECTED: Smaller icon size */
+    height: 18px; /* CORRECTED: Smaller icon size */
+}
+
+/* Popover Styles (Light Theme) */
+.password-popover {
+    position: absolute;
+    top: -15px;
+    left: calc(100% + 15px);
+    width: 280px;
+    background-color: #ffffff;
+    border: 1px solid #d1d1d1;
+    border-radius: 8px;
+    padding: 15px 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.password-popover.visible {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(0);
+}
+.password-popover::before {
+    content: '';
+    position: absolute;
+    top: 25px;
+    left: -8px;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid #d1d1d1;
+}
+.password-popover::after {
+    content: '';
+    position: absolute;
+    top: 25px;
+    left: -7px;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid #ffffff;
+}
+.popover-title {
+    font-weight: 600;
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+    color: #333;
+}
+#password-rules {
+    font-size: 0.85rem;
+    text-align: left;
+    color: #555;
+}
+#password-rules .rule.invalid { color: #dc3545; }
+#password-rules .rule.valid { color: #28a745; }
