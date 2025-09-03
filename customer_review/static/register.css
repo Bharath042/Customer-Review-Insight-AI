@@ -108,49 +108,6 @@ button:disabled {
     text-decoration: underline;
 }
 
-/* Flashed Messages Styling */
-.flash-messages {
-    margin-bottom: 1.25rem;
-    width: 100%;
-}
-
-.flash {
-    padding: 0.75rem;
-    border-radius: 5px;
-    color: #fff;
-    font-size: 0.9rem;
-    text-align: center;
-}
-
-.flash.error, .flash.danger { background-color: #dc3545; }
-.flash.success { background-color: #28a745; }
-.flash.info { background-color: #17a2b8; }
-.flash.warning { background-color: #ffc107; color: #212529; }
-
-
-/* Validation Rule Text Styling */
-.rule {
-    transition: color 0.3s ease;
-    padding-left: 20px;
-    position: relative;
-    margin-bottom: 4px;
-}
-
-.rule.invalid { color: #dc3545; }
-.rule.invalid::before {
-    content: '✖';
-    position: absolute;
-    left: 0;
-    top: 0;
-}
-.rule.valid { color: #28a745; }
-.rule.valid::before {
-    content: '✔';
-    position: absolute;
-    left: 0;
-    top: 0;
-}
-
 /* Popover and Password Icon Styles */
 .password-group { position: relative; }
 .password-wrapper { position: relative; }
@@ -159,14 +116,14 @@ button:disabled {
 .toggle-password {
     position: absolute;
     top: 50%;
-    right: 15px; /* Position icon from the right edge */
+    right: 15px;
     transform: translateY(-50%);
     cursor: pointer;
     color: #999;
 }
 .toggle-password svg {
-    width: 18px; /* CORRECTED: Smaller icon size */
-    height: 18px; /* CORRECTED: Smaller icon size */
+    width: 18px;
+    height: 18px;
 }
 
 /* Popover Styles (Light Theme) */
@@ -220,5 +177,40 @@ button:disabled {
     text-align: left;
     color: #555;
 }
-#password-rules .rule.invalid { color: #dc3545; }
-#password-rules .rule.valid { color: #28a745; }
+
+/* --- Styles for Real-Time Validation --- */
+.error-message {
+    color: #dc3545;
+    font-size: 0.8rem;
+    margin-top: 5px;
+    display: none; /* Hidden by default */
+}
+
+.form-group input.invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
+}
+
+.form-group input.valid {
+    border-color: #28a745;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+}
+
+.rule {
+    transition: color 0.3s ease;
+    padding-left: 0;
+    position: relative;
+    margin: 5px 0;
+    font-size: 0.85rem;
+}
+
+.rule.invalid { color: #6c757d; }
+.rule.invalid::before {
+    content: '● ';
+    color: #6c757d;
+}
+.rule.valid { color: #28a745; }
+.rule.valid::before {
+    content: '✔ ';
+    color: #28a745;
+}

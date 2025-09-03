@@ -138,3 +138,6 @@ button:hover {
     width: 18px; /* CORRECTED: Smaller icon size */
     height: 18px; /* CORRECTED: Smaller icon size */
 }
+body.admin-page button {
+    background: linear-gradient(90deg, #28a745, #218838);
+}

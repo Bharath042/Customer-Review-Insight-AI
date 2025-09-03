@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Customer Review Insight AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='landing_page.css') }}">
+</head>
+<body>
+    <div class="landing-container">
+        
+        <div class="content-column">
+            <h1>Welcome to ReviewSense AI</h1>
+            <p class="subtitle">Unlock powerful insights from your customer feedback with the help of advanced AI.</p>
+            
+            <div class="button-group">
+                <a href="{{ url_for('login_page') }}" class="btn btn-user">User Login</a>
+                <a href="{{ url_for('admin_auth.admin_login') }}" class="btn btn-admin">Admin Login</a>
+            </div>
+        </div>
+
+        <div class="image-column">
+            
+        </div>
+
+    </div>
+</body>
+</html>

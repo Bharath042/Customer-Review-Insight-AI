@@ -2,22 +2,83 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Raw Text</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
+    <style>
+        /* Page background */
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f4f9; /* light bluish background */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* Profile container */
+        .profile-container {
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+        }
+
+        /* Card styling */
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            text-align: center;
+        }
+
+        .card-title {
+            font-size: 22px;
+            margin-bottom: 20px;
+            color: #1e90ff; /* Dodger blue */
+        }
+
+        /* Textarea */
+        textarea {
+            width: 100%;
+            padding: 8px; /* reduced padding */
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            resize: vertical; /* allow manual resizing */
+            min-height: 80px; /* smaller default height */
+            outline: none;
+            transition: border 0.3s ease;
+        }
+
+        textarea:focus {
+            border: 1px solid #1e90ff;
+        }
+
+        /* Buttons */
+        button {
+            background: #fff;
+            color: #1e90ff;
+            border: 2px solid #1e90ff;
+            padding: 8px 16px;
+            margin: 5px 2px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #1e90ff;
+            color: #fff;
+        }
+
+        a {
+            text-decoration: none;
+        }
+    </style>
 </head>
 <body>
-    <!-- Header Navigation -->
-    <div class="header">
-        <div class="profile">
-            <span class="welcome-text">Welcome, {{ username }}</span>
-            <div class="nav-buttons">
-                <a href="{{ url_for('main.home') }}" class="home-btn">Home</a>
-                <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
-            </div>
-        </div>
-    </div>
-
     <div class="profile-container">
         <div class="card">
             <h2 class="card-title">Edit Raw Text</h2>
@@ -26,7 +87,7 @@
                 <textarea name="content" rows="4">{{ text.content }}</textarea>
                 <br><br>
                 <button type="submit">Save Changes</button>
-                <a href="{{ url_for('main.profile') }}">
+                <a href="{{ url_for('profile') }}">
                     <button type="button">Cancel</button>
                 </a>
             </form>
