@@ -3,26 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Customer Review Insight AI</title>
+    <title>Welcome to ReviewSense AI</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='landing_page.css') }}">
 </head>
 <body>
+
+    <canvas id="particle-canvas"></canvas>
+
     <div class="landing-container">
-        
-        <div class="content-column">
-            <h1>Welcome to ReviewSense AI</h1>
-            <p class="subtitle">Unlock powerful insights from your customer feedback with the help of advanced AI.</p>
+        <div class="content-box">
+            <h1>Turn Customer Feedback into Growth.</h1>
+            <p class="subtitle">Our AI-powered platform uncovers critical insights from your reviews, helping you build better products and delight your customers.</p>
             
             <div class="button-group">
-                <a href="{{ url_for('login_page') }}" class="btn btn-user">User Login</a>
-                <a href="{{ url_for('admin_auth.admin_login') }}" class="btn btn-admin">Admin Login</a>
+                <a href="{{ url_for('login_page') }}" class="btn btn-user">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3.465 14.493a1.23 1.23 0 0 0 .41 1.412A9.957 9.957 0 0 0 10 18c2.31 0 4.438-.784 6.131-2.095a1.23 1.23 0 0 0 .41-1.412A9.99 9.99 0 0 0 10 12a9.99 9.99 0 0 0-6.535 2.493Z" /></svg>
+                    User Login
+                </a>
+                <a href="{{ url_for('admin_auth.admin_login') }}" class="btn btn-admin">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.542L9.05 5.5h5.9l-.178-1.708a1.875 1.875 0 0 0-1.85-1.542h-1.694ZM12 7.5a.75.75 0 0 1 .75.75v3a.75.75 0 0 1-1.5 0v-3A.75.75 0 0 1 12 7.5ZM14.122 5.5l-.178 1.708a1.875 1.875 0 0 1-1.85 1.542h-1.694a1.875 1.875 0 0 1-1.85-1.542L8.378 5.5H5.25a1.5 1.5 0 0 0-1.5 1.5v12a1.5 1.5 0 0 0 1.5 1.5h13.5a1.5 1.5 0 0 0 1.5-1.5v-12a1.5 1.5 0 0 0-1.5-1.5h-3.128Z" clip-rule="evenodd" /></svg>
+                    Admin Login
+                </a>
             </div>
         </div>
-
-        <div class="image-column">
-            
-        </div>
-
     </div>
+
+    <script src="{{ url_for('static', filename='particles.js') }}"></script>
 </body>
 </html>

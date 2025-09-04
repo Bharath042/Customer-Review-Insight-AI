@@ -72,7 +72,7 @@ def home():
         # If CSV file uploaded
         if 'file' in request.files:
             file = request.files['file']
-            if file.filename.endswith('.csv'):
+            if file and file.filename.endswith('.csv'):
                 file_path = os.path.join(user_folder, file.filename)
                 file.save(file_path)
 
@@ -103,7 +103,7 @@ def home():
     return render_template(
         'home.html',
         username=username,
-        files=[f.filename for f in uploaded_files]  # Pass only filenames
+        files=[f.filename for f in uploaded_files]
     )
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
@@ -112,11 +112,11 @@ def profile():
 
     user = User.query.get(session['user_id'])
     files = UploadedFile.query.filter_by(user_id=user.id).all()
-    raw_texts = RawText.query.filter_by(user_id=user.id).all()  # <-- fetch raw texts
+    raw_texts = RawText.query.filter_by(user_id=user.id).all()
 
     return render_template("profile.html", 
                            files=files, 
-                           raw_texts=raw_texts,  # <-- pass texts to template
+                           raw_texts=raw_texts,
                            username=user.username)
 
 # Delete file
@@ -126,7 +126,7 @@ def delete_file(file_id):
         return redirect(url_for('login_page'))
 
     file = UploadedFile.query.get(file_id)
-    if file:
+    if file and file.user_id == session['user_id']:
         db.session.delete(file)
         db.session.commit()
         flash("File deleted successfully!", "success")
@@ -138,7 +138,7 @@ def delete_raw_text(text_id):
         return redirect(url_for('login_page'))
 
     text = RawText.query.get(text_id)
-    if text:
+    if text and text.user_id == session['user_id']:
         db.session.delete(text)
         db.session.commit()
         flash("Raw text deleted successfully!", "success")
@@ -150,6 +150,9 @@ def edit_raw_text(text_id):
         return redirect(url_for('login_page'))
 
     text = RawText.query.get_or_404(text_id)
+    if text.user_id != session['user_id']:
+        flash("You do not have permission to edit this.", "danger")
+        return redirect(url_for('profile'))
 
     if request.method == 'POST':
         new_content = request.form['content']
@@ -170,19 +173,20 @@ def edit_file(file_id):
     new_name = request.form.get('new_name')
     file = UploadedFile.query.get(file_id)
 
-    if file and new_name.strip():
+    if file and file.user_id == session['user_id'] and new_name.strip():
+        # You should also rename the actual file on the filesystem here
+        # os.rename(...)
         file.filename = new_name
         db.session.commit()
         flash("File renamed successfully!", "success")
     else:
-        flash("Invalid filename!", "danger")
+        flash("Invalid filename or permission denied!", "danger")
 
     return redirect(url_for('profile'))
+
 @app.route('/login-page')
 def login_page():
     return render_template('login.html')
-
-# ... inside app.py ...
 
 @app.route('/auth/register', methods=['POST'])
 def register():
@@ -190,7 +194,6 @@ def register():
     username = request.form.get('username')
     password = request.form.get('password')
 
-    # --- Enhanced Form Validation ---
     if not email or not username or not password:
         flash("All fields (Email, Username, Password) are required.", "danger")
         return redirect(url_for('register_page'))
@@ -200,7 +203,6 @@ def register():
         flash("Please enter a valid email address.", "danger")
         return redirect(url_for('register_page'))
 
-    # Check for minimum password length (example: 8 characters)
     if len(password) < 8:
         flash("Password must be at least 8 characters long.", "danger")
         return redirect(url_for('register_page'))
@@ -226,7 +228,6 @@ def login():
     email = request.form.get('email')
     password = request.form.get('password')
 
-    # --- Enhanced Form Validation ---
     if not email or not password:
         flash("Email and password are required.", "danger")
         return redirect(url_for('login_page'))
@@ -248,8 +249,10 @@ def login():
 
     return redirect(url_for('home'))
 
+@app.route('/logout')  # <-- DECORATOR WAS MISSING HERE
 def logout():
     session.clear()
+    flash("You have been logged out.", "success")
     return redirect(url_for('login_page'))
 
 # ------------------------
@@ -258,20 +261,18 @@ def logout():
 @app.cli.command("create-admin")
 def create_admin():
     """Creates a new admin user."""
-    email = input("Enter admin email: ")
+    username = input("Enter admin username: ")
     password = input("Enter admin password: ")
 
-    # Check if admin already exists
-    if Admin.query.filter_by(email=email).first():
-        print(f"Error: Admin with email {email} already exists.")
+    if Admin.query.filter_by(admin_username=username).first():
+        print(f"Error: Admin with username {username} already exists.")
         return
 
-    # Create and save the new admin
     hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
-    new_admin = Admin(email=email, password=hashed_password)
+    new_admin = Admin(admin_username=username, password=hashed_password)
     db.session.add(new_admin)
     db.session.commit()
-    print(f"Admin {email} created successfully!")
+    print(f"Admin {username} created successfully!")
 
 
 # ------------------------

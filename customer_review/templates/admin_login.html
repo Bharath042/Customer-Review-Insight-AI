@@ -3,62 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login</title>
+    <title>Admin Login | ReviewSense AI</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='alerts.css') }}">
 </head>
-<body class="admin-page">
+<body class="admin-theme">
+    <canvas id="particle-canvas"></canvas>
+
     <div class="login-container">
-        <h2>Admin Login</h2>
-
-        {% include '_flashes.html' %}
-            {% if messages %}
-                <div class="flash-messages">
-                {% for category, message in messages %}
-                    <p class="flash {{ category }}">{{ message }}</p>
-                {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-        
-        <form method="POST" action="{{ url_for('admin_auth.admin_login') }}" novalidate>
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" placeholder="Enter your username" required>
-            </div>
+        <div class="login-box">
+            <h1>Administrator Access</h1>
+            <p class="subtitle">Please enter your admin credentials.</p>
             
-            <div class="form-group">
-                <label for="password">Password</label>
-                <div class="password-wrapper">
-                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
-                    <span class="toggle-password">
-                        <svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 0 1 0-1.113ZM17.25 12a5.25 5.25 0 1 1-10.5 0 5.25 5.25 0 0 1 10.5 0Z" clip-rule="evenodd" /></svg>
-                        <svg class="eye-slash-icon" style="display: none;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3.53 2.47a.75.75 0 0 0-1.06 1.06l18 18a.75.75 0 1 0 1.06-1.06l-18-18ZM22.676 12.553a11.249 11.249 0 0 1-2.631 4.31l-3.099-3.099a5.25 5.25 0 0 0-6.71-6.71L7.759 4.577a11.217 11.217 0 0 1 4.242-.827c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113Z"/><path d="M15.75 12c0 .18-.013.357-.037.53l-1.64 1.64A3 3 0 0 0 12 15c.18 0 .357-.013.53-.037l1.64 1.64A5.25 5.25 0 0 1 12 17.25c-2.899 0-5.25-2.351-5.25-5.25 0-.18.013-.357.037-.53l1.64-1.64A3 3 0 0 0 12 9c-.18 0-.357.013-.53.037l-1.64-1.64A5.25 5.25 0 0 1 12 6.75c2.899 0 5.25 2.351 5.25 5.25Z"/></svg>
-                    </span>
-                </div>
-            </div>
+            {% include '_flashes.html' %}
             
-            <button type="submit">Login</button>
-        </form>
+            <form method="POST" action="{{ url_for('admin_auth.admin_login') }}" id="admin-login-form" novalidate>
+                <div class="form-group">
+                    <input type="text" id="username" name="username" placeholder="Admin Username" autocomplete="off" data-validate>
+                    <div class="error-message"></div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="password-wrapper">
+                        <input type="password" id="password" name="password" placeholder="Password" autocomplete="off" data-validate>
+                        <span class="toggle-password">
+                            <svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 0 1 0-1.113ZM17.25 12a5.25 5.25 0 1 1-10.5 0 5.25 5.25 0 0 1 10.5 0Z" clip-rule="evenodd" /></svg>
+                            <svg class="eye-slash-icon" style="display: none;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3.53 2.47a.75.75 0 0 0-1.06 1.06l18 18a.75.75 0 1 0 1.06-1.06l-18-18ZM22.676 12.553a11.249 11.249 0 0 1-2.631 4.31l-3.099-3.099a5.25 5.25 0 0 0-6.71-6.71L7.759 4.577a11.217 11.217 0 0 1 4.242-.827c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113Z"/><path d="M15.75 12c0 .18-.013.357-.037.53l-1.64 1.64A3 3 0 0 0 12 15c.18 0 .357-.013.53-.037l1.64 1.64A5.25 5.25 0 0 1 12 17.25c-2.899 0-5.25-2.351-5.25-5.25 0-.18.013-.357.037-.53l1.64-1.64A3 3 0 0 0 12 9c-.18 0-.357.013-.53-.037l-1.64-1.64A5.25 5.25 0 0 1 12 6.75c2.899 0 5.25 2.351 5.25 5.25Z"/></svg>
+                        </span>
+                    </div>
+                    <div class="error-message"></div>
+                </div>
+                
+                <button type="submit">Login</button>
+            </form>
+        </div>
     </div>
-
+    
+    <script src="{{ url_for('static', filename='particles.js') }}"></script>
+    <script src="{{ url_for('static', filename='form_validation.js') }}"></script>
     <script>
-        // Script for toggling password visibility
         document.querySelectorAll('.toggle-password').forEach(toggle => {
             toggle.addEventListener('click', () => {
-                const passwordField = toggle.previousElementSibling;
+                const passwordField = toggle.closest('.password-wrapper').querySelector('input');
                 const eyeIcon = toggle.querySelector('.eye-icon');
                 const eyeSlashIcon = toggle.querySelector('.eye-slash-icon');
                 if (passwordField.type === 'password') {
                     passwordField.type = 'text';
-                    eyeIcon.style.display = 'none';
-                    eyeSlashIcon.style.display = 'block';
+                    if(eyeIcon) eyeIcon.style.display = 'none';
+                    if(eyeSlashIcon) eyeSlashIcon.style.display = 'block';
                 } else {
                     passwordField.type = 'password';
-                    eyeIcon.style.display = 'block';
-                    eyeSlashIcon.style.display = 'none';
+                    if(eyeIcon) eyeIcon.style.display = 'block';
+                    if(eyeSlashIcon) eyeSlashIcon.style.display = 'none';
                 }
             });
         });

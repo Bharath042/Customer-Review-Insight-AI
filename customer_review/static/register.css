@@ -1,216 +1,93 @@
-/* General Body Styles */
-body {
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+:root {
+    --text-primary: #ffffff;
+    --text-secondary: #a0aec0;
+    --accent-color: #4f46e5;
+    --accent-hover: #4338ca;
+    --input-bg: rgba(255, 255, 255, 0.1);
+    --input-border: rgba(255, 255, 255, 0.2);
+    --background-color: #0d1117;
+    --card-color: rgba(22, 27, 34, 0.75);
+    --error-color: #f87171;
+    --success-color: #4ade80;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
     font-family: 'Poppins', sans-serif;
-    background-color: #f0f2f5;
+    background-color: var(--background-color);
+    color: var(--text-primary);
+}
+
+#particle-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+.register-container {
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    margin: 0;
-    padding: 20px 0;
-}
-
-/* Main Registration Container */
-.register-container {
-    background-color: #ffffff;
-    padding: 2.5rem;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 500px;
+    padding: 40px 20px;
     box-sizing: border-box;
-    text-align: center;
-}
-
-.register-container h2 {
-    margin-bottom: 1.5rem;
-    color: #333;
-    font-weight: 600;
-    font-size: 1.75rem;
-}
-
-/* Form Styling */
-.form-group {
-    margin-bottom: 1.25rem;
-    text-align: left;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: #555;
-    font-size: 0.9rem;
-}
-
-.form-group input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    box-sizing: border-box;
-    font-size: 1rem;
-    font-family: 'Poppins', sans-serif;
-    transition: border-color 0.3s, box-shadow 0.3s;
-}
-
-.form-group input::placeholder {
-    color: #aaa;
-}
-
-.form-group input:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
-}
-
-/* Button Styling */
-button {
-    width: 100%;
-    padding: 0.8rem;
-    background: linear-gradient(90deg, #007bff, #0056b3);
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-button:disabled {
-    background: #aab8c5;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
-/* Link to Login Page */
-.login-link {
-    margin-top: 1.5rem;
-    font-size: 0.9rem;
-    color: #666;
-}
-
-.login-link a {
-    color: #007bff;
-    text-decoration: none;
-    font-weight: 500;
-}
-
-.login-link a:hover {
-    text-decoration: underline;
-}
-
-/* Popover and Password Icon Styles */
-.password-group { position: relative; }
-.password-wrapper { position: relative; }
-.password-wrapper input { padding-right: 45px; }
-
-.toggle-password {
-    position: absolute;
-    top: 50%;
-    right: 15px;
-    transform: translateY(-50%);
-    cursor: pointer;
-    color: #999;
-}
-.toggle-password svg {
-    width: 18px;
-    height: 18px;
-}
-
-/* Popover Styles (Light Theme) */
-.password-popover {
-    position: absolute;
-    top: -15px;
-    left: calc(100% + 15px);
-    width: 280px;
-    background-color: #ffffff;
-    border: 1px solid #d1d1d1;
-    border-radius: 8px;
-    padding: 15px 20px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    z-index: 10;
-    visibility: hidden;
-    opacity: 0;
-    transform: translateX(-10px);
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-.password-popover.visible {
-    visibility: visible;
-    opacity: 1;
-    transform: translateX(0);
-}
-.password-popover::before {
-    content: '';
-    position: absolute;
-    top: 25px;
-    left: -8px;
-    border-top: 8px solid transparent;
-    border-bottom: 8px solid transparent;
-    border-right: 8px solid #d1d1d1;
-}
-.password-popover::after {
-    content: '';
-    position: absolute;
-    top: 25px;
-    left: -7px;
-    border-top: 8px solid transparent;
-    border-bottom: 8px solid transparent;
-    border-right: 8px solid #ffffff;
-}
-.popover-title {
-    font-weight: 600;
-    margin-bottom: 12px;
-    font-size: 0.9rem;
-    color: #333;
-}
-#password-rules {
-    font-size: 0.85rem;
-    text-align: left;
-    color: #555;
-}
-
-/* --- Styles for Real-Time Validation --- */
-.error-message {
-    color: #dc3545;
-    font-size: 0.8rem;
-    margin-top: 5px;
-    display: none; /* Hidden by default */
-}
-
-.form-group input.invalid {
-    border-color: #dc3545;
-    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
-}
-
-.form-group input.valid {
-    border-color: #28a745;
-    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
-}
-
-.rule {
-    transition: color 0.3s ease;
-    padding-left: 0;
     position: relative;
-    margin: 5px 0;
-    font-size: 0.85rem;
+    z-index: 1;
 }
 
-.rule.invalid { color: #6c757d; }
-.rule.invalid::before {
-    content: '● ';
-    color: #6c757d;
+.register-box {
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
+    background: var(--card-color);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--input-border);
+    border-radius: 16px;
+    padding: 2.5rem;
 }
-.rule.valid { color: #28a745; }
-.rule.valid::before {
-    content: '✔ ';
-    color: #28a745;
+
+.register-box h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
 }
+
+.form-group { margin-bottom: 1.25rem; text-align: left; }
+.form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-secondary); }
+.form-group input { width: 100%; padding: 1rem; border: 1px solid var(--input-border); border-radius: 8px; box-sizing: border-box; font-size: 1rem; font-family: 'Poppins', sans-serif; background-color: var(--input-bg); color: var(--text-primary); transition: border-color 0.3s, box-shadow 0.3s; }
+.form-group input::placeholder { color: #718096; }
+.form-group input:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.4); }
+
+.password-wrapper { position: relative; }
+.toggle-password { position: absolute; top: 50%; right: 15px; transform: translateY(-50%); cursor: pointer; color: #a0aec0; }
+.toggle-password svg { width: 20px; height: 20px; }
+
+/* --- Real-Time Validation Styles --- */
+.error-message { color: var(--error-color); font-size: 0.875rem; margin-top: 8px; height: 1em; }
+.form-group input.invalid { border-color: var(--error-color) !important; }
+.form-group input.valid { border-color: var(--success-color) !important; }
+
+/* --- Password Popover Styles --- */
+.password-group { position: relative; }
+.password-popover { display: none; position: absolute; top: 100%; left: 0; width: 100%; background-color: #1f2937; color: #d1d5db; padding: 15px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); margin-top: 10px; z-index: 10; text-align: left; box-sizing: border-box; }
+.password-popover.visible { display: block; }
+.popover-title { font-weight: 600; margin: 0 0 10px 0; font-size: 0.9rem; border-bottom: 1px solid #4b5563; padding-bottom: 5px; }
+.rule { margin: 5px 0; font-size: 0.85rem; transition: color 0.3s ease; }
+.rule.valid { color: var(--success-color); }
+.rule.valid::before { content: '✔ '; }
+.rule.invalid { color: var(--text-secondary); }
+.rule.invalid::before { content: '● '; }
+
+/* --- Button and Link Styles --- */
+button { width: 100%; padding: 1rem; background: var(--accent-color); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600; transition: all 0.2s ease; }
+button:hover { background-color: var(--accent-hover); transform: translateY(-2px); }
+button:disabled { background: #30363d; color: #8b949e; cursor: not-allowed; transform: none; box-shadow: none; }
+.login-link { margin-top: 1.5rem; font-size: 0.9rem; color: var(--text-secondary); }
+.login-link a { color: var(--accent-color); text-decoration: none; font-weight: 600; }
+.login-link a:hover { text-decoration: underline; }
