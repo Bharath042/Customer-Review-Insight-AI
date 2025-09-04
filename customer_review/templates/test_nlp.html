@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Milestone 2 Progress</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+        body { font-family: 'Poppins', sans-serif; background-color: #f0f4f8; margin: 0; padding: 40px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+        h1 { color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-top: 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background-color: #f8fafc; font-weight: 600; color: #475569; }
+        td { color: #334155; vertical-align: top; }
+        td code { font-family: monospace; background-color: #e2e8f0; padding: 4px 6px; border-radius: 4px; }
+        .sentiment-label { text-transform: capitalize; font-weight: bold; padding: 4px 10px; border-radius: 999px; color: white; font-size: 0.8rem; }
+        /* CORRECTED: CSS classes are now lowercase */
+        .positive { background-color: #28a745; }
+        .negative { background-color: #dc3545; }
+        .neutral { background-color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Milestone 2 Progress: Full NLP Pipeline Test</h1>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 40%;">Original Review</th>
+                    <th style="width: 40%;">Cleaned for AI Model</th>
+                    <th>Sentiment Result</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in results %}
+                <tr>
+                    <td>{{ item.original }}</td>
+                    <td><code>{{ item.cleaned }}</code></td>
+                    <td>
+                        <span class="sentiment-label {{ item.sentiment_label }}">
+                            {{ item.sentiment_label }}
+                        </span>
+                        (Score: {{ item.sentiment_score }})
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

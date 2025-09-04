@@ -5,17 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login | ReviewSense AI</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='alerts.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='toast.css') }}">
 </head>
 <body class="admin-theme">
+    
+    {% include '_flashes.html' %}
+
     <canvas id="particle-canvas"></canvas>
 
     <div class="login-container">
         <div class="login-box">
             <h1>Administrator Access</h1>
             <p class="subtitle">Please enter your admin credentials.</p>
-            
-            {% include '_flashes.html' %}
             
             <form method="POST" action="{{ url_for('admin_auth.admin_login') }}" id="admin-login-form" novalidate>
                 <div class="form-group">
@@ -41,6 +42,7 @@
     
     <script src="{{ url_for('static', filename='particles.js') }}"></script>
     <script src="{{ url_for('static', filename='form_validation.js') }}"></script>
+    <script src="{{ url_for('static', filename='toast.js') }}"></script>
     <script>
         document.querySelectorAll('.toggle-password').forEach(toggle => {
             toggle.addEventListener('click', () => {

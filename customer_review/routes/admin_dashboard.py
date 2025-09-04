@@ -1,11 +1,10 @@
 from flask import Blueprint, render_template, redirect, url_for, session, flash
 from functools import wraps
-from models import User, UploadedFile, RawText
+from models import User, RawText, db
+from nlp_processor import clean_text, analyze_sentiment
 
-# Create a Blueprint for the admin dashboard
 admin_dashboard_bp = Blueprint('admin_dashboard', __name__)
 
-# --- Admin Security Decorator ---
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -15,17 +14,31 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- Admin Routes ---
 @admin_dashboard_bp.route('/admin/dashboard')
 @admin_required
 def dashboard():
-    # Fetch all users from the database
     all_users = User.query.all()
     return render_template('admin_dashboard.html', users=all_users)
 
+@admin_dashboard_bp.route('/admin/analysis')
+@admin_required
+def analysis_page():
+    all_reviews = RawText.query.all()
+    results = []
+    for review in all_reviews:
+        cleaned = clean_text(review.content)
+        sentiment = analyze_sentiment(cleaned)
+        confidence_percentage = int(sentiment['score'] * 100)
+        results.append({
+            'original': review.content,
+            'user_id': review.user_id,
+            'sentiment_label': sentiment['label'].upper(),
+            'confidence': confidence_percentage
+        })
+    return render_template('admin_analysis.html', results=results)
+
 @admin_dashboard_bp.route('/admin/logout')
 def admin_logout():
-    # Clear only the admin session key
     session.clear()
     flash("You have been logged out.", "success")
     return redirect(url_for('landing_page'))

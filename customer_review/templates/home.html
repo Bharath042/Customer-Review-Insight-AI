@@ -3,44 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home - Review Management</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Dashboard | ReviewSense AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='user_dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='toast.css') }}">
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <div class="profile">
-            <a href="{{ url_for('profile') }}" class="username">{{ username }}</a>
+
+    {% include '_flashes.html' %}
+
+    <div class="page-container">
+        <header class="main-header">
+            <h1>Welcome, {{ username }}</h1>
             <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
-        </div>
+        </header>
+
+        <main class="main-content">
+            
+            <section class="input-section">
+                <div class="card input-card">
+                    <h3>Upload Review Dataset (CSV)</h3>
+                    <form method="POST" enctype="multipart/form-data">
+                        <input type="file" name="file" accept=".csv" required>
+                        <button type="submit">Upload & Analyze</button>
+                    </form>
+                </div>
+                <div class="card input-card">
+                    <h3>Or Paste Raw Review Text</h3>
+                    <form method="POST">
+                        <textarea name="raw_text" placeholder="Paste your review text here..."></textarea>
+                        <button type="submit">Save & Analyze</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="stat-cards">
+                <div class="card">
+                    <h3>Uploaded Files</h3>
+                    <p class="stat-number">{{ files | length }}</p>
+                </div>
+                <div class="card">
+                    <h3>Raw Text Entries</h3>
+                    <p class="stat-number">{{ raw_texts | length }}</p>
+                </div>
+            </section>
+
+            <section class="table-container card">
+                <h2>Data Management</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Content / Filename</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for file in files %}
+                        <tr>
+                            <td>File</td>
+                            <td>{{ file.filename }}</td>
+                            <td class="actions">
+                                <form action="{{ url_for('delete_file', file_id=file.id) }}" method="POST" onsubmit="return confirm('Are you sure?');">
+                                    <button type="submit" class="btn-delete">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% for text in raw_texts %}
+                        <tr>
+                            <td>Raw Text</td>
+                            <td>{{ text.content | truncate(50) }}</td>
+                            <td class="actions">
+                                <form action="{{ url_for('delete_raw_text', text_id=text.id) }}" method="POST" onsubmit="return confirm('Are you sure?');">
+                                    <button type="submit" class="btn-delete">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not files and not raw_texts %}
+                        <tr>
+                            <td colspan="3" style="text-align: center;">No data uploaded yet.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </section>
+        </main>
     </div>
-
-    <div class="container">
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <p class="{{ category }}">{{ message }}</p>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
-
-        <!-- Review Data Input -->
-        <div class="card">
-            <h3>Upload Review Dataset (CSV)</h3>
-            <form method="POST" enctype="multipart/form-data">
-                <input type="file" name="file" accept=".csv" required>
-                <button type="submit">Upload</button>
-            </form>
-        </div>
-
-        <div class="card">
-            <h3>Or Paste Raw Review Text</h3>
-            <form method="POST">
-                <textarea name="raw_text" rows="5" cols="60" placeholder="Paste your review text here"></textarea><br><br>
-                <button type="submit">Save Text</button>
-            </form>
-        </div>
-    </div>
+    <script src="{{ url_for('static', filename='toast.js') }}"></script>
 </body>
 </html>

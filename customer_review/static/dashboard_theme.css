@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display.swap');
+
+:root {
+    --bg-dark: #0d1117;
+    --bg-light: #161b22;
+    --border-color: #30363d;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --accent-blue: #4f46e5;
+    --accent-green: #28a745;
+    --accent-red: #e5484d;
+}
+
+body, html {
+    margin: 0; padding: 0; font-family: 'Poppins', sans-serif;
+    background-color: var(--bg-dark); color: var(--text-primary);
+}
+
+.dashboard-wrapper { display: flex; }
+
+/* --- Sidebar Navigation --- */
+.sidebar { width: 250px; background-color: var(--bg-light); min-height: 100vh; border-right: 1px solid var(--border-color); padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; }
+.sidebar-header { text-align: center; margin-bottom: 30px; font-size: 1.5rem; font-weight: 700; }
+.sidebar-nav { flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+.sidebar-nav ul { list-style: none; padding: 0; }
+.sidebar-nav li a { display: flex; align-items: center; gap: 12px; color: var(--text-secondary); text-decoration: none; padding: 15px; border-radius: 8px; margin-bottom: 5px; transition: background-color 0.3s, color 0.3s; }
+.sidebar-nav svg { width: 20px; height: 20px; }
+.logout-nav a:hover { background-color: var(--accent-red); color: white; }
+
+/* --- Theme-Specific Colors --- */
+.user-dashboard .sidebar-nav li a:hover,
+.user-dashboard .sidebar-nav li a.active { background-color: var(--accent-blue); color: white; }
+.admin-dashboard .sidebar-nav li a:hover,
+.admin-dashboard .sidebar-nav li a.active { background-color: var(--accent-green); color: white; }
+
+/* --- Main Content Area --- */
+.main-content { flex-grow: 1; padding: 30px; max-height: 100vh; overflow-y: auto; }
+.header { margin-bottom: 30px; }
+.header h1 { margin: 0; font-size: 2rem; }
+.card { background-color: var(--bg-light); border: 1px solid var(--border-color); padding: 25px; border-radius: 12px; }
+.table-container { margin-top: 30px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
+th { font-weight: 600; color: var(--text-secondary); }
+tbody tr:hover { background-color: rgba(255, 255, 255, 0.05); }
+
+/* --- Sentiment Labels for Analysis Page --- */
+.sentiment-label { text-transform: capitalize; font-weight: bold; padding: 4px 10px; border-radius: 999px; color: white; font-size: 0.8rem; }
+.sentiment-label.POSITIVE { background-color: var(--accent-green); }
+.sentiment-label.NEGATIVE { background-color: var(--accent-red); }
+.sentiment-label.NEUTRAL { background-color: #6c757d; }
+
+.sentiment-container {
+    display: flex;
+    flex-direction: column; /* Stack items vertically */
+    align-items: flex-start; /* Align items to the left */
+    gap: 4px; /* Add a small space between the label and score */
+}
+
+.confidence-score {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    display: inline-block;
+}

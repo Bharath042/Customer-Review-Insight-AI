@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin Dashboard | ReviewSense AI{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='toast.css') }}">
+    <style>
+        @media print {
+            .sidebar { display: none; }
+            .main-content { margin: 0; padding: 0; max-width: 100%; }
+        }
+    </style>
+</head>
+<body class="admin-dashboard">
+    <div class="dashboard-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-header">Admin Panel</div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li>
+                        <a href="{{ url_for('admin_dashboard.dashboard') }}"
+                           class="{% if request.path.startswith('/admin/dashboard') %}active{% endif %}">
+                            <span>User Management</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('admin_dashboard.analysis_page') }}"
+                           class="{% if request.path.startswith('/admin/analysis') %}active{% endif %}">
+                            <span>Analysis Results</span>
+                        </a>
+                    </li>
+                </ul>
+                <ul class="logout-nav">
+                    <li>
+                        <a href="{{ url_for('admin_dashboard.admin_logout') }}">
+                            <span>Logout</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            {% include '_flashes.html' %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='toast.js') }}"></script>
+</body>
+</html>

@@ -13,7 +13,7 @@ def admin_login():
         # --- Enhanced Form Validation ---
         if not username or not password:
             flash("Username and password are required.", "danger")
-            return redirect(url_for('admin_auth.admin_login'))
+            return redirect(url_for('admin_dashboard.analysis_page'))
 
         # Query the Admin table by username
         admin = Admin.query.filter_by(admin_username=username).first()

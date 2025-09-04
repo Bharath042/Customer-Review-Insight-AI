@@ -5,17 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login to ReviewSense AI</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='alerts.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='toast.css') }}">
 </head>
 <body class="user-theme">
+    
+    {% include '_flashes.html' %}
+
     <canvas id="particle-canvas"></canvas>
 
     <div class="login-container">
         <div class="login-box">
             <h1>Welcome Back</h1>
             <p class="subtitle">Log in to access your dashboard.</p>
-            
-            {% include '_flashes.html' %}
             
             <form method="POST" action="{{ url_for('login') }}" id="user-login-form" novalidate>
                 <div class="form-group">
@@ -46,7 +47,9 @@
     
     <script src="{{ url_for('static', filename='particles.js') }}"></script>
     <script src="{{ url_for('static', filename='form_validation.js') }}"></script>
+    <script src="{{ url_for('static', filename='toast.js') }}"></script>
     <script>
+        // Inline script for password toggle
         document.querySelectorAll('.toggle-password').forEach(toggle => {
             toggle.addEventListener('click', () => {
                 const passwordField = toggle.closest('.password-wrapper').querySelector('input');

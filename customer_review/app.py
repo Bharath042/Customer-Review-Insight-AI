@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, get_flashed_messages
 import re
+from nlp_processor import clean_text
 from routes.admin_auth import admin_auth_bp
 from routes.admin_dashboard import admin_dashboard_bp 
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,16 +9,12 @@ import jwt
 import datetime
 import os
 from dotenv import load_dotenv
+from routes.analysis import analysis_bp
 
-# Import the db object and all models from the new models.py file
 from models import db, User, UploadedFile, RawText, Admin
 
-# Load environment variables
 load_dotenv()
 
-# ------------------------
-# Flask app setup
-# ------------------------
 app = Flask(__name__)
 CORS(app)
 
@@ -26,33 +23,25 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'mysql+py
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_TYPE'] = 'filesystem'
 
-# Initialize the database with the app
 db.init_app(app)
 
-# Create all database tables
 with app.app_context():
     db.create_all()
 
-# Register the blueprint with the app
 app.register_blueprint(admin_auth_bp)
 app.register_blueprint(admin_dashboard_bp)
+app.register_blueprint(analysis_bp)
 
-# ------------------------
-# File Uploads
-# ------------------------
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ------------------------
-# Routes
-# ------------------------
 @app.route('/')
 def landing_page():
     return render_template('landing_page.html')
 
 @app.route('/register')
 def register_page():
-    return render_template('register.html')
+    return render_template('register.html', flashed_messages=get_flashed_messages(with_categories=True))
 
 @app.route('/home', methods=['GET', 'POST'])
 def home():
@@ -60,133 +49,77 @@ def home():
         return redirect(url_for('login_page'))
 
     user = User.query.get(session['user_id'])
-    username = user.username
-
-    user_folder = os.path.join(UPLOAD_FOLDER, username)
-    os.makedirs(user_folder, exist_ok=True)
-
-    # ✅ Get uploaded files from DB
-    uploaded_files = UploadedFile.query.filter_by(user_id=user.id).all()
-
+    
     if request.method == 'POST':
-        # If CSV file uploaded
+        user_folder = os.path.join(UPLOAD_FOLDER, user.username)
+        os.makedirs(user_folder, exist_ok=True)
+        
         if 'file' in request.files:
             file = request.files['file']
-            if file and file.filename.endswith('.csv'):
+            if file and file.filename != '' and file.filename.endswith('.csv'):
                 file_path = os.path.join(user_folder, file.filename)
                 file.save(file_path)
-
-                # ✅ Save metadata in DB
                 new_file = UploadedFile(filename=file.filename, user_id=user.id)
                 db.session.add(new_file)
                 db.session.commit()
-
                 flash("CSV uploaded successfully!", "success")
             else:
-                flash("Only CSV files are allowed.", "danger")
+                flash("Upload failed. Please select a valid CSV file.", "danger")
 
-        # If raw text pasted
         elif 'raw_text' in request.form:
             raw_text = request.form['raw_text']
             if raw_text.strip():
-                # ✅ Save raw text in DB
                 new_text = RawText(content=raw_text, user_id=user.id)
                 db.session.add(new_text)
                 db.session.commit()
-
                 flash("Raw text saved successfully!", "success")
             else:
                 flash("Please enter some text before saving.", "danger")
-
+        
         return redirect(url_for('home'))
+
+    uploaded_files = UploadedFile.query.filter_by(user_id=user.id).all()
+    raw_texts = RawText.query.filter_by(user_id=user.id).all()
 
     return render_template(
         'home.html',
-        username=username,
-        files=[f.filename for f in uploaded_files]
+        username=user.username,
+        files=uploaded_files,
+        raw_texts=raw_texts,
+        flashed_messages=get_flashed_messages(with_categories=True)
     )
-@app.route('/profile', methods=['GET', 'POST'])
-def profile():
-    if 'user_id' not in session:
-        return redirect(url_for('login_page'))
 
-    user = User.query.get(session['user_id'])
-    files = UploadedFile.query.filter_by(user_id=user.id).all()
-    raw_texts = RawText.query.filter_by(user_id=user.id).all()
-
-    return render_template("profile.html", 
-                           files=files, 
-                           raw_texts=raw_texts,
-                           username=user.username)
-
-# Delete file
 @app.route('/delete_file/<int:file_id>', methods=['POST'])
 def delete_file(file_id):
     if 'user_id' not in session:
         return redirect(url_for('login_page'))
 
-    file = UploadedFile.query.get(file_id)
-    if file and file.user_id == session['user_id']:
-        db.session.delete(file)
+    file_to_delete = UploadedFile.query.get_or_404(file_id)
+    if file_to_delete.user_id == session['user_id']:
+        db.session.delete(file_to_delete)
         db.session.commit()
         flash("File deleted successfully!", "success")
+    else:
+        flash("You do not have permission to delete this file.", "danger")
+    return redirect(url_for('home'))
 
-    return redirect(url_for('profile'))
 @app.route('/delete_raw_text/<int:text_id>', methods=['POST'])
 def delete_raw_text(text_id):
     if 'user_id' not in session:
         return redirect(url_for('login_page'))
 
-    text = RawText.query.get(text_id)
-    if text and text.user_id == session['user_id']:
-        db.session.delete(text)
+    text_to_delete = RawText.query.get_or_404(text_id)
+    if text_to_delete.user_id == session['user_id']:
+        db.session.delete(text_to_delete)
         db.session.commit()
         flash("Raw text deleted successfully!", "success")
-
-    return redirect(url_for('profile'))
-@app.route('/edit_raw_text/<int:text_id>', methods=['GET', 'POST'])
-def edit_raw_text(text_id):
-    if 'user_id' not in session:
-        return redirect(url_for('login_page'))
-
-    text = RawText.query.get_or_404(text_id)
-    if text.user_id != session['user_id']:
-        flash("You do not have permission to edit this.", "danger")
-        return redirect(url_for('profile'))
-
-    if request.method == 'POST':
-        new_content = request.form['content']
-        text.content = new_content
-        db.session.commit()
-        flash("Raw text updated successfully!", "success")
-        return redirect(url_for('profile'))
-
-    return render_template('edit_raw_text.html', text=text)
-
-
-# Edit (Rename) file
-@app.route('/edit_file/<int:file_id>', methods=['POST'])
-def edit_file(file_id):
-    if 'user_id' not in session:
-        return redirect(url_for('login_page'))
-
-    new_name = request.form.get('new_name')
-    file = UploadedFile.query.get(file_id)
-
-    if file and file.user_id == session['user_id'] and new_name.strip():
-        # You should also rename the actual file on the filesystem here
-        # os.rename(...)
-        file.filename = new_name
-        db.session.commit()
-        flash("File renamed successfully!", "success")
     else:
-        flash("Invalid filename or permission denied!", "danger")
-
-    return redirect(url_for('profile'))
+        flash("You do not have permission to delete this text.", "danger")
+    return redirect(url_for('home'))
 
 @app.route('/login-page')
 def login_page():
-    return render_template('login.html')
+    return render_template('login.html', flashed_messages=get_flashed_messages(with_categories=True))
 
 @app.route('/auth/register', methods=['POST'])
 def register():
@@ -198,6 +131,7 @@ def register():
         flash("All fields (Email, Username, Password) are required.", "danger")
         return redirect(url_for('register_page'))
     
+    # Using email-validator library is more robust, but regex is here as requested
     email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     if not re.match(email_regex, email):
         flash("Please enter a valid email address.", "danger")
@@ -240,16 +174,9 @@ def login():
 
     session['user_id'] = user.id
     session['username'] = user.username
-
-    token = jwt.encode(
-        {'user_id': user.id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)},
-        app.config['SECRET_KEY'],
-        algorithm='HS256'
-    )
-
     return redirect(url_for('home'))
 
-@app.route('/logout')  # <-- DECORATOR WAS MISSING HERE
+@app.route('/logout')
 def logout():
     session.clear()
     flash("You have been logged out.", "success")
@@ -264,6 +191,7 @@ def create_admin():
     username = input("Enter admin username: ")
     password = input("Enter admin password: ")
 
+    # CORRECTED: Check for admin by admin_username, not email
     if Admin.query.filter_by(admin_username=username).first():
         print(f"Error: Admin with username {username} already exists.")
         return
@@ -273,6 +201,8 @@ def create_admin():
     db.session.add(new_admin)
     db.session.commit()
     print(f"Admin {username} created successfully!")
+
+
 
 
 # ------------------------
