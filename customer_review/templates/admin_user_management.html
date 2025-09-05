@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard | ReviewSense AI</title>
+    <title>User Management | Admin</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='dashboard_theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='toast.css') }}">
 </head>
@@ -13,39 +13,20 @@
             <div class="sidebar-header">Admin Panel</div>
             <nav class="sidebar-nav">
                 <ul>
-                    <li>
-                        <a href="{{ url_for('admin_dashboard.analysis_page') }}">
-                            <span>Reviews</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ url_for('admin_dashboard.dashboard') }}" class="active">
-                            <span>User Management</span>
-                        </a>
-                    </li>
+                    <li><a href="{{ url_for('admin_dashboard.admin_home') }}"><span>Dashboard</span></a></li>
+                    <li><a href="{{ url_for('admin_dashboard.analysis_page') }}"><span>Reviews</span></a></li>
+                    <li><a href="{{ url_for('admin_dashboard.user_management') }}" class="active"><span>User Management</span></a></li>
                 </ul>
                 <ul class="logout-nav">
-                    <li><a href="{{ url_for('admin_dashboard.admin_logout') }}">
-                        <span>Logout</span>
-                    </a></li>
+                    <li><a href="{{ url_for('admin_dashboard.admin_logout') }}"><span>Logout</span></a></li>
                 </ul>
             </nav>
         </aside>
-
         <main class="main-content">
-            <header class="header">
-                <h1>User Management</h1>
-            </header>
-
+            <header class="header"><h1>User Management</h1></header>
             <div class="table-container card">
                 <table>
-                    <thead>
-                        <tr>
-                            <th>User ID</th>
-                            <th>Username</th>
-                            <th>Email</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>User ID</th><th>Username</th><th>Email</th></tr></thead>
                     <tbody>
                         {% for user in users %}
                         <tr>
@@ -54,9 +35,7 @@
                             <td>{{ user.email }}</td>
                         </tr>
                         {% else %}
-                        <tr>
-                            <td colspan="3" style="text-align: center; color: var(--text-secondary);">No users found.</td>
-                        </tr>
+                        <tr><td colspan="3" style="text-align: center;">No users found.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

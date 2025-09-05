@@ -1,76 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Analysis Results | ReviewSense AI</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard_theme.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='toast.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Analysis | Admin</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard_theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='toast.css') }}">
 </head>
 <body class="admin-dashboard">
-  <div class="dashboard-wrapper">
-    <aside class="sidebar">
-      <div class="sidebar-header">Admin Panel</div>
-      <nav class="sidebar-nav">
-            <ul>
-                <li>
-                    <a href="{{ url_for('admin_dashboard.analysis_page') }}" class="active">
-                        <span>Reviews</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ url_for('admin_dashboard.dashboard') }}">
-                        <span>User Management</span>
-                    </a>
-                </li>
-            </ul>
-            <ul class="logout-nav">
-                <li><a href="{{ url_for('admin_dashboard.admin_logout') }}">
-                    <span>Logout</span>
-                </a></li>
-            </ul>
-        </nav>
-    </aside>
-    <main class="main-content">
-      {% include '_flashes.html' %}
-      <header class="header">
-        <h1>Review Analysis</h1>
-      </header>
-      <section class="table-container card">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:60%;">Original Review</th>
-              <th>Submitted by User ID</th>
-              <th>Sentiment</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for item in results %}
-            <tr>
-              <td>{{ item.original }}</td>
-              <td>{{ item.user_id }}</td>
-              <td>
-                <div class="sentiment-container">
-                    <span class="sentiment-label {{ item.sentiment_label }}">
-                        {{ item.sentiment_label }}
-                    </span>
-                    <span class="confidence-score">
-                        {{ item.confidence }}% Confidence
-                    </span>
-                </div>
-               </td>
-            </tr>
-            {% else %}
-            <tr>
-              <td colspan="3" style="text-align:center;">No reviews submitted yet.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </section>
-    </main>
-  </div>
-  <script src="{{ url_for('static', filename='toast.js') }}"></script>
+    <div class="dashboard-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-header">Admin Panel</div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="{{ url_for('admin_dashboard.admin_home') }}"><span>Dashboard</span></a></li>
+                    <li><a href="{{ url_for('admin_dashboard.analysis_page') }}" class="active"><span>Reviews</span></a></li>
+                    <li><a href="{{ url_for('admin_dashboard.user_management') }}"><span>User Management</span></a></li>
+                </ul>
+                <ul class="logout-nav">
+                    <li><a href="{{ url_for('admin_dashboard.admin_logout') }}"><span>Logout</span></a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            {% include '_flashes.html' %}
+            <header class="header">
+                <h1>Review Analysis</h1>
+            </header>
+
+            <section class="card filter-bar">
+                <form method="GET" action="{{ url_for('admin_dashboard.analysis_page') }}">
+                    <div class="filter-group">
+                        <label for="sentiment">Filter by Sentiment</label>
+                        <select name="sentiment" id="sentiment">
+                            <option value="all" {% if current_filter == 'all' %}selected{% endif %}>All</option>
+                            <option value="positive" {% if current_filter == 'positive' %}selected{% endif %}>Positive</option>
+                            <option value="negative" {% if current_filter == 'negative' %}selected{% endif %}>Negative</option>
+                            <option value="neutral" {% if current_filter == 'neutral' %}selected{% endif %}>Neutral</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="sort">Sort by</label>
+                        <select name="sort" id="sort">
+                            <option value="confidence" {% if current_sort == 'confidence' %}selected{% endif %}>Confidence Score</option>
+                            <option value="sentiment" {% if current_sort == 'sentiment' %}selected{% endif %}>Sentiment</option>
+                            <option value="userid" {% if current_sort == 'userid' %}selected{% endif %}>User ID</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-filter">Apply</button>
+                    <a href="{{ url_for('admin_dashboard.analysis_page') }}" class="btn-reset">Reset</a>
+                </form>
+            </section>
+
+            <section class="table-container card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 60%;">Original Review</th>
+                            <th>Submitted by User ID</th>
+                            <th>Sentiment</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in results %}
+                        <tr>
+                            <td>{{ item.original }}</td>
+                            <td>{{ item.user_id }}</td>
+                            <td>
+                                <div class="sentiment-container">
+                                    <span class="sentiment-label {{ item.sentiment_label }}">
+                                        {{ item.sentiment_label }}
+                                    </span>
+                                    <span class="confidence-score">
+                                        {{ (item.sentiment_score * 100) | int }}% Confidence
+                                    </span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" style="text-align: center;">No reviews found for this filter.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='toast.js') }}"></script>
 </body>
 </html>

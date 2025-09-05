@@ -25,6 +25,6 @@ def admin_login():
 
         session['admin_id'] = admin.id
         flash("Admin login successful!", "success")
-        return redirect(url_for('admin_dashboard.dashboard'))
+        return redirect(url_for('admin_dashboard.admin_home'))
 
     return render_template('admin_login.html')
