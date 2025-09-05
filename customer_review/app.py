@@ -10,6 +10,7 @@ import datetime
 import os
 from dotenv import load_dotenv
 from routes.analysis import analysis_bp
+import pandas as pd
 
 from models import db, User, UploadedFile, RawText, Admin
 
@@ -51,24 +52,38 @@ def home():
     user = User.query.get(session['user_id'])
     
     if request.method == 'POST':
-        user_folder = os.path.join(UPLOAD_FOLDER, user.username)
-        os.makedirs(user_folder, exist_ok=True)
-        
+        # --- Handle File Upload ---
         if 'file' in request.files:
-            file = request.files['file']
+            file = request.files.get('file')
+            
             if file and file.filename != '' and file.filename.endswith('.csv'):
-                file_path = os.path.join(user_folder, file.filename)
-                file.save(file_path)
-                new_file = UploadedFile(filename=file.filename, user_id=user.id)
-                db.session.add(new_file)
-                db.session.commit()
-                flash("CSV uploaded successfully!", "success")
+                try:
+                    # Read the CSV file using pandas
+                    df = pd.read_csv(file)
+                    
+                    # Check if the required 'review_text' column exists
+                    if 'review_text' in df.columns:
+                        reviews_to_add = []
+                        for review_text in df['review_text'].dropna():
+                            new_text = RawText(content=str(review_text), user_id=user.id)
+                            reviews_to_add.append(new_text)
+                        
+                        db.session.bulk_save_objects(reviews_to_add)
+                        db.session.commit()
+                        flash(f"{len(reviews_to_add)} reviews from '{file.filename}' were uploaded successfully!", "success")
+                    else:
+                        flash("Upload failed. The CSV file must contain a column named 'review_text'.", "danger")
+
+                except Exception as e:
+                    flash(f"An error occurred while processing the file: {e}", "danger")
+
             else:
                 flash("Upload failed. Please select a valid CSV file.", "danger")
 
+        # --- Handle Raw Text ---
         elif 'raw_text' in request.form:
-            raw_text = request.form['raw_text']
-            if raw_text.strip():
+            raw_text = request.form.get('raw_text')
+            if raw_text and raw_text.strip():
                 new_text = RawText(content=raw_text, user_id=user.id)
                 db.session.add(new_text)
                 db.session.commit()
@@ -78,6 +93,7 @@ def home():
         
         return redirect(url_for('home'))
 
+    # --- For GET Request ---
     uploaded_files = UploadedFile.query.filter_by(user_id=user.id).all()
     raw_texts = RawText.query.filter_by(user_id=user.id).all()
 

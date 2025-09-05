@@ -18,12 +18,14 @@
         </header>
 
         <main class="main-content">
-            
             <section class="input-section">
                 <div class="card input-card">
                     <h3>Upload Review Dataset (CSV)</h3>
-                    <form method="POST" enctype="multipart/form-data">
-                        <input type="file" name="file" accept=".csv" required>
+                    <form method="POST" enctype="multipart/form-data" id="csv-upload-form">
+                        <input type="file" name="file" id="csv-file-input" accept=".csv">
+                        <span class="input-instruction">
+                            Note: The CSV file must contain a column named "review_text".
+                        </span>
                         <button type="submit">Upload & Analyze</button>
                     </form>
                 </div>
@@ -51,11 +53,7 @@
                 <h2>Data Management</h2>
                 <table>
                     <thead>
-                        <tr>
-                            <th>Type</th>
-                            <th>Content / Filename</th>
-                            <th>Actions</th>
-                        </tr>
+                        <tr><th>Type</th><th>Content / Filename</th><th>Actions</th></tr>
                     </thead>
                     <tbody>
                         {% for file in files %}
@@ -81,15 +79,40 @@
                         </tr>
                         {% endfor %}
                         {% if not files and not raw_texts %}
-                        <tr>
-                            <td colspan="3" style="text-align: center;">No data uploaded yet.</td>
-                        </tr>
+                        <tr><td colspan="3" style="text-align: center;">No data uploaded yet.</td></tr>
                         {% endif %}
                     </tbody>
                 </table>
             </section>
         </main>
     </div>
+    
     <script src="{{ url_for('static', filename='toast.js') }}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const csvForm = document.getElementById('csv-upload-form');
+            const fileInput = document.getElementById('csv-file-input');
+
+            csvForm.addEventListener('submit', function(event) {
+                // Check if no file is selected
+                if (fileInput.files.length === 0) {
+                    event.preventDefault(); // Stop the form from submitting
+                    // Trigger a toast notification
+                    Toastify({
+                        text: "Please select a file to upload.",
+                        duration: 3000,
+                        close: true,
+                        gravity: "top",
+                        position: "right",
+                        style: {
+                            background: "linear-gradient(to right, #dc3545, #c82333)",
+                            borderRadius: "8px",
+                        }
+                    }).showToast();
+                }
+            });
+        });
+    </script>
 </body>
 </html>
