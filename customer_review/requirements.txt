@@ -1,0 +1,11 @@
+Flask
+nltk
+transformers
+Flask-SQLAlchemy
+Flask-CORS
+PyJWT
+python-dotenv
+pandas
+PyMySQL
+cryptography
+torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118

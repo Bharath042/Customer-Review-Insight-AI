@@ -44,6 +44,8 @@ def landing_page():
 def register_page():
     return render_template('register.html', flashed_messages=get_flashed_messages(with_categories=True))
 
+from nlp_processor import analyze_sentiment  # make sure this is imported at the top
+
 @app.route('/home', methods=['GET', 'POST'])
 def home():
     if 'user_id' not in session:
@@ -58,52 +60,60 @@ def home():
             
             if file and file.filename != '' and file.filename.endswith('.csv'):
                 try:
-                    # Read the CSV file using pandas
                     df = pd.read_csv(file)
                     
-                    # Check if the required 'review_text' column exists
                     if 'review_text' in df.columns:
                         reviews_to_add = []
                         for review_text in df['review_text'].dropna():
-                            new_text = RawText(content=str(review_text), user_id=user.id)
+                            sentiment_result = analyze_sentiment(str(review_text))
+                            new_text = RawText(
+                                content=str(review_text),
+                                user_id=user.id,
+                                sentiment=sentiment_result['label'],
+                                score=sentiment_result['score']
+                            )
                             reviews_to_add.append(new_text)
                         
                         db.session.bulk_save_objects(reviews_to_add)
                         db.session.commit()
-                        flash(f"{len(reviews_to_add)} reviews from '{file.filename}' were uploaded successfully!", "success")
+                        flash(f"{len(reviews_to_add)} reviews from '{file.filename}' uploaded & analyzed successfully!", "success")
                     else:
-                        flash("Upload failed. The CSV file must contain a column named 'review_text'.", "danger")
+                        flash("CSV must contain a column named 'review_text'.", "danger")
 
                 except Exception as e:
-                    flash(f"An error occurred while processing the file: {e}", "danger")
-
+                    flash(f"Error processing file: {e}", "danger")
             else:
-                flash("Upload failed. Please select a valid CSV file.", "danger")
+                flash("Please select a valid CSV file.", "danger")
 
         # --- Handle Raw Text ---
         elif 'raw_text' in request.form:
             raw_text = request.form.get('raw_text')
             if raw_text and raw_text.strip():
-                new_text = RawText(content=raw_text, user_id=user.id)
+                sentiment_result = analyze_sentiment(raw_text)
+                new_text = RawText(
+                    content=raw_text,
+                    user_id=user.id,
+                    sentiment=sentiment_result['label'],
+                    score=sentiment_result['score']
+                )
                 db.session.add(new_text)
                 db.session.commit()
-                flash("Raw text saved successfully!", "success")
+                flash("Raw text saved & analyzed successfully!", "success")
             else:
                 flash("Please enter some text before saving.", "danger")
         
         return redirect(url_for('home'))
 
     # --- For GET Request ---
-    uploaded_files = UploadedFile.query.filter_by(user_id=user.id).all()
-    raw_texts = RawText.query.filter_by(user_id=user.id).all()
+    raw_texts = RawText.query.filter_by(user_id=user.id).order_by(RawText.id.desc()).all()
 
     return render_template(
         'home.html',
         username=user.username,
-        files=uploaded_files,
         raw_texts=raw_texts,
         flashed_messages=get_flashed_messages(with_categories=True)
     )
+
 
 @app.route('/delete_file/<int:file_id>', methods=['POST'])
 def delete_file(file_id):

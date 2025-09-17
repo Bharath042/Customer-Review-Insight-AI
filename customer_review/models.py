@@ -23,6 +23,8 @@ class RawText(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    sentiment = db.Column(db.String(20))
+    score = db.Column(db.Float)  
 
 class Admin(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -23,9 +23,7 @@
                     <h3>Upload Review Dataset (CSV)</h3>
                     <form method="POST" enctype="multipart/form-data" id="csv-upload-form">
                         <input type="file" name="file" id="csv-file-input" accept=".csv">
-                        <span class="input-instruction">
-                            Note: The CSV file must contain a column named "review_text".
-                        </span>
+                        <span class="input-instruction">CSV must contain column "review_text".</span>
                         <button type="submit">Upload & Analyze</button>
                     </form>
                 </div>
@@ -38,39 +36,38 @@
                 </div>
             </section>
 
-            <section class="stat-cards">
-                <div class="card">
-                    <h3>Uploaded Files</h3>
-                    <p class="stat-number">{{ files | length }}</p>
-                </div>
-                <div class="card">
-                    <h3>Raw Text Entries</h3>
-                    <p class="stat-number">{{ raw_texts | length }}</p>
-                </div>
-            </section>
-
             <section class="table-container card">
-                <h2>Data Management</h2>
+                <h2>Reviews & Sentiment</h2>
                 <table>
                     <thead>
-                        <tr><th>Type</th><th>Content / Filename</th><th>Actions</th></tr>
+                        <tr>
+                            <th>Review</th>
+                            <th>Sentiment</th>
+                            <th>Confidence Score</th>
+                            <th>Actions</th>
+                        </tr>
                     </thead>
                     <tbody>
-                        {% for file in files %}
-                        <tr>
-                            <td>File</td>
-                            <td>{{ file.filename }}</td>
-                            <td class="actions">
-                                <form action="{{ url_for('delete_file', file_id=file.id) }}" method="POST" onsubmit="return confirm('Are you sure?');">
-                                    <button type="submit" class="btn-delete">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
                         {% for text in raw_texts %}
                         <tr>
-                            <td>Raw Text</td>
-                            <td>{{ text.content | truncate(50) }}</td>
+                            <td>{{ text.content | truncate(100) }}</td>
+                            <td>
+                                {% set sentiment = text.sentiment.strip().upper() if text.sentiment else "NEUTRAL" %}
+                                {% if sentiment == "POSITIVE" %}
+                                    <span style="color:green;font-weight:bold;">Positive</span>
+                                {% elif sentiment == "NEGATIVE" %}
+                                    <span style="color:red;font-weight:bold;">Negative</span>
+                                {% else %}
+                                    <span style="color:gray;font-weight:bold;">Neutral</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if text.score is not none %}
+                                    {{ "%.2f"|format(text.score) }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
                             <td class="actions">
                                 <form action="{{ url_for('delete_raw_text', text_id=text.id) }}" method="POST" onsubmit="return confirm('Are you sure?');">
                                     <button type="submit" class="btn-delete">Delete</button>
@@ -78,41 +75,15 @@
                             </td>
                         </tr>
                         {% endfor %}
-                        {% if not files and not raw_texts %}
-                        <tr><td colspan="3" style="text-align: center;">No data uploaded yet.</td></tr>
+                        {% if not raw_texts %}
+                        <tr><td colspan="4" style="text-align:center;">No reviews submitted yet.</td></tr>
                         {% endif %}
                     </tbody>
                 </table>
             </section>
         </main>
     </div>
-    
+
     <script src="{{ url_for('static', filename='toast.js') }}"></script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const csvForm = document.getElementById('csv-upload-form');
-            const fileInput = document.getElementById('csv-file-input');
-
-            csvForm.addEventListener('submit', function(event) {
-                // Check if no file is selected
-                if (fileInput.files.length === 0) {
-                    event.preventDefault(); // Stop the form from submitting
-                    // Trigger a toast notification
-                    Toastify({
-                        text: "Please select a file to upload.",
-                        duration: 3000,
-                        close: true,
-                        gravity: "top",
-                        position: "right",
-                        style: {
-                            background: "linear-gradient(to right, #dc3545, #c82333)",
-                            borderRadius: "8px",
-                        }
-                    }).showToast();
-                }
-            });
-        });
-    </script>
 </body>
 </html>
