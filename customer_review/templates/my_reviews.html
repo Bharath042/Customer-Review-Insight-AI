@@ -1,0 +1,95 @@
+{% extends "base_user_dashboard.html" %}
+
+{% block title %}My Reviews | ReviewSense AI{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='my_reviews.css') }}">
+{% endblock %}
+
+{% block content %}
+    <header class="header">
+        <h1>My Reviews</h1>
+    </header>
+
+    <section class="input-section">
+        <div class="card input-card">
+            <h3>Upload Review Dataset (CSV)</h3>
+            <form method="POST" enctype="multipart/form-data" id="csv-upload-form">
+                <input type="file" name="file" id="csv-file-input" accept=".csv">
+                <button type="submit">Upload & Analyze</button>
+            </form>
+        </div>
+        <div class="card input-card">
+            <h3>Or Paste Raw Review Text</h3>
+            <form method="POST">
+                <textarea name="raw_text" placeholder="Paste your review text here..."></textarea>
+                <button type="submit">Save & Analyze</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="table-container card">
+        <h2>My Reviews & Sentiment</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Review</th>
+                    <th>Sentiment</th>
+                    <th>Confidence Score</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for text in raw_texts %}
+                <tr>
+                    <td>
+                        {# Display the pre-highlighted content. Use | safe to render HTML. #}
+                        {{ text.highlighted_content | safe }}
+                    </td>
+                    <td>
+                        {% set sentiment = text.sentiment.strip().upper() if text.sentiment else "NEUTRAL" %}
+                        {% if sentiment == "POSITIVE" %}
+                            <span class="sentiment-label positive">Positive</span>
+                        {% elif sentiment == "NEGATIVE" %}
+                            <span class="sentiment-label negative">Negative</span>
+                        {% else %}
+                            <span class="sentiment-label neutral">Neutral</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if text.score is not none %}
+                            {{ "%.4f"|format(text.score) }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                    <td class="actions">
+                        <form action="{{ url_for('delete_raw_text', text_id=text.id) }}" method="POST" onsubmit="return confirm('Are you sure?');">
+                            <button type="submit" class="btn-delete">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not raw_texts %}
+                <tr>
+                    <td colspan="4" style="text-align:center;">No reviews submitted yet.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        // Add active class to 'My Reviews' sidebar link (still relevant for base_user_dashboard.html)
+        document.addEventListener('DOMContentLoaded', function() {
+            const myReviewsLink = document.querySelector('.sidebar-nav ul li a[href="{{ url_for('my_reviews') }}"]');
+            if (myReviewsLink) {
+                myReviewsLink.classList.add('active');
+            }
+        });
+    </script>
+{% endblock %}

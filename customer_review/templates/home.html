@@ -1,89 +1,93 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | ReviewSense AI</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='user_dashboard.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='toast.css') }}">
-</head>
-<body>
+{% extends "base_user_dashboard.html" %}
 
-    {% include '_flashes.html' %}
+{% block title %}Dashboard | ReviewSense AI{% endblock %}
 
-    <div class="page-container">
-        <header class="main-header">
-            <h1>Welcome, {{ username }}</h1>
-            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
-        </header>
+{% block content %}
+    <header class="header"><h1>Welcome, {{ username }}</h1></header>
 
-        <main class="main-content">
-            <section class="input-section">
-                <div class="card input-card">
-                    <h3>Upload Review Dataset (CSV)</h3>
-                    <form method="POST" enctype="multipart/form-data" id="csv-upload-form">
-                        <input type="file" name="file" id="csv-file-input" accept=".csv">
-                        <span class="input-instruction">CSV must contain column "review_text".</span>
-                        <button type="submit">Upload & Analyze</button>
-                    </form>
-                </div>
-                <div class="card input-card">
-                    <h3>Or Paste Raw Review Text</h3>
-                    <form method="POST">
-                        <textarea name="raw_text" placeholder="Paste your review text here..."></textarea>
-                        <button type="submit">Save & Analyze</button>
-                    </form>
-                </div>
-            </section>
+    <section class="stat-cards">
+        <div class="card"><h3>Total Reviews</h3><p class="stat-number">{{ stats.total_reviews }}</p></div>
+        <div class="card"><h3>Positive Sentiment</h3><p class="stat-number">{{ stats.positive_percentage }}%</p></div>
+        <div class="card"><h3>Negative Sentiment</h3><p class="stat-number">{{ stats.negative_percentage }}%</p></div>
+        <div class="card"><h3>Neutral Sentiment</h3><p class="stat-number">{{ stats.neutral_percentage }}%</p></div>
+    </section>
 
+    <div class="dashboard-grid">
+        <div class="side-panel">
             <section class="table-container card">
-                <h2>Reviews & Sentiment</h2>
+                <h2>My Recent Reviews</h2>
                 <table>
-                    <thead>
-                        <tr>
-                            <th>Review</th>
-                            <th>Sentiment</th>
-                            <th>Confidence Score</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Review</th><th>Sentiment</th></tr></thead>
                     <tbody>
-                        {% for text in raw_texts %}
+                        {% for review in recent_reviews %}
                         <tr>
-                            <td>{{ text.content | truncate(100) }}</td>
+                            <td>{{ review.content | truncate(50) }}</td>
                             <td>
-                                {% set sentiment = text.sentiment.strip().upper() if text.sentiment else "NEUTRAL" %}
+                                {% set sentiment = review.sentiment.strip().upper() if review.sentiment else "NEUTRAL" %}
                                 {% if sentiment == "POSITIVE" %}
-                                    <span style="color:green;font-weight:bold;">Positive</span>
+                                    <span class="sentiment-label positive">Positive</span>
                                 {% elif sentiment == "NEGATIVE" %}
-                                    <span style="color:red;font-weight:bold;">Negative</span>
+                                    <span class="sentiment-label negative">Negative</span>
                                 {% else %}
-                                    <span style="color:gray;font-weight:bold;">Neutral</span>
+                                    <span class="sentiment-label neutral">Neutral</span>
                                 {% endif %}
-                            </td>
-                            <td>
-                                {% if text.score is not none %}
-                                    {{ "%.2f"|format(text.score) }}
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            </td>
-                            <td class="actions">
-                                <form action="{{ url_for('delete_raw_text', text_id=text.id) }}" method="POST" onsubmit="return confirm('Are you sure?');">
-                                    <button type="submit" class="btn-delete">Delete</button>
-                                </form>
                             </td>
                         </tr>
+                        {% else %}
+                        <tr><td colspan="2" style="text-align: center;">You haven’t submitted any reviews yet.</td></tr>
                         {% endfor %}
-                        {% if not raw_texts %}
-                        <tr><td colspan="4" style="text-align:center;">No reviews submitted yet.</td></tr>
-                        {% endif %}
                     </tbody>
                 </table>
             </section>
-        </main>
-    </div>
+        </div>
 
-    <script src="{{ url_for('static', filename='toast.js') }}"></script>
-</body>
-</html>
+        <div class="main-panel">
+            <section class="card">
+                <h2>My Sentiment Distribution</h2>
+                <div style="max-height: 250px; display: flex; justify-content: center; align-items: center;">
+                    <canvas id="userSentimentChart"></canvas>
+                </div>
+            </section>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %} {# Add the Chart.js script to the scripts block #}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('userSentimentChart').getContext('2d');
+            const chartData = {{ chart_data | tojson }};
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Positive', 'Negative', 'Neutral'],
+                    datasets: [{
+                        label: 'My Sentiment Distribution',
+                        data: [chartData.positive, chartData.negative, chartData.neutral],
+                        backgroundColor: [
+                            'rgba(40, 167, 69, 0.8)',
+                            'rgba(220, 53, 69, 0.8)',
+                            'rgba(108, 117, 125, 0.8)'
+                        ],
+                        borderColor: ['#161b22','#161b22','#161b22'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#e6edf3',
+                                font: { family: "'Poppins', sans-serif" },
+                                padding: 34
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}

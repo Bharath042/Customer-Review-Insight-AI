@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}User Dashboard | ReviewSense AI{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard_theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='user_dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='toast.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {% block head %}{% endblock %} {# Placeholder for page-specific head content #}
+</head>
+<body class="user-dashboard">
+    <div class="dashboard-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-header">User Panel</div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="{{ url_for('home') }}" {% if request.endpoint == 'home' %}class="active"{% endif %}><span>Dashboard</span></a></li>
+                    <li><a href="{{ url_for('my_reviews') }}" {% if request.endpoint == 'my_reviews' %}class="active"{% endif %}><span>My Reviews</span></a></li>
+                    <li><a href="{{ url_for('analysis.aspect_analysis_page') }}" {% if request.endpoint == 'analysis.aspect_analysis_page' %}class="active"{% endif %}><span>Aspect Analysis</span></a></li>                </ul>
+                <ul class="logout-nav">
+                    <li><a href="{{ url_for('logout') }}"><span>Logout</span></a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            {% include '_flashes.html' %} {# Assuming _flashes.html exists #}
+            {# The actual content for each page will go here #}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='toast.js') }}"></script>
+    {% block scripts %}{% endblock %} {# Placeholder for page-specific JavaScript #}
+</body>
+</html>

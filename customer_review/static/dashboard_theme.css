@@ -96,3 +96,25 @@ tbody tr:hover { background-color: rgba(255, 255, 255, 0.05); }
     gap: 20px;
     margin-bottom: 30px;
 }
+/* --- Aspect Highlighting Styles --- */
+.highlight-positive {
+    background-color: rgba(144, 238, 144, 0.4); /* Light green with transparency */
+    border-bottom: 1px solid #28a745;
+    padding: 1px 3px;
+    border-radius: 3px;
+    box-shadow: 0 0 3px rgba(144, 238, 144, 0.6); /* Optional: add a subtle glow */
+}
+.highlight-negative {
+    background-color: rgba(255, 99, 71, 0.4); /* Tomato red with transparency */
+    border-bottom: 1px solid #dc3545;
+    padding: 1px 3px;
+    border-radius: 3px;
+    box-shadow: 0 0 3px rgba(255, 99, 71, 0.6); /* Optional: add a subtle glow */
+}
+.highlight-neutral {
+    background-color: rgba(255, 255, 0, 0.3); /* Light yellow with transparency */
+    border-bottom: 1px solid #ffc107;
+    padding: 1px 3px;
+    border-radius: 3px;
+    box-shadow: 0 0 3px rgba(255, 255, 0, 0.6); /* Optional: add a subtle glow */
+}

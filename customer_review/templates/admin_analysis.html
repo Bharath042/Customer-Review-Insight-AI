@@ -65,7 +65,7 @@
                     <tbody>
                         {% for item in results %}
                         <tr>
-                            <td>{{ item.original }}</td>
+                            <td>{{ item.original | safe }}</td>
                             <td>{{ item.user_id }}</td>
                             <td>
                                 <div class="sentiment-container">

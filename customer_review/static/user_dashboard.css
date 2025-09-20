@@ -18,7 +18,11 @@ body, html {
     background-color: var(--bg-dark);
     color: var(--text-primary);
 }
-
+.sidebar-nav ul li a:hover {
+    background-color:#007bff;
+    color: #fff; /* keep text white */
+    padding-left: 25px; /* small shift effect */
+}
 .page-container {
     max-width: 1100px;
     margin: 0 auto;
@@ -76,7 +80,10 @@ body, html {
 .input-card textarea { resize: vertical; min-height: 80px; }
 .input-card button { color: white; background-color: var(--accent-blue); border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; margin-top: 10px; font-weight: 600; transition: background-color 0.3s; }
 .input-card button:hover { background-color: var(--accent-blue-hover); }
-
+.sentiment-label { text-transform: capitalize; font-weight: bold; padding: 4px 10px; border-radius:6px; color: white; font-size: 0.8rem; }
+.sentiment-label.positive { background-color: var(--accent-green); }
+.sentiment-label.negative { background-color: var(--accent-red); }
+.sentiment-label.neutral { background-color: #6c757d; }
 .table-container { margin-top: 30px; }
 .table-container h2 { margin-bottom: 15px; }
 table { width: 100%; border-collapse: collapse; }

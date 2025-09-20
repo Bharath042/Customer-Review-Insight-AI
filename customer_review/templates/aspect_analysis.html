@@ -1,0 +1,250 @@
+{% extends "base_user_dashboard.html" %}
+
+{% block title %}Aspect Analysis{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    {# Chart.js CDN inclusion #}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Existing table styles */
+        .aspect-table-container {
+            margin-top: 20px;
+            background-color: var(--card-bg-color); /* Assuming a CSS variable for card background */
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-small); /* Assuming a CSS variable for shadows */
+            overflow-x: auto; /* For responsive tables */
+        }
+        .aspect-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .aspect-table th,
+        .aspect-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color); /* Assuming a CSS variable for border color */
+            vertical-align: middle;
+        }
+        .aspect-table th {
+            background-color: var(--header-bg-color); /* Assuming a CSS variable for header background */
+            color: var(--header-text-color); /* Assuming a CSS variable for header text */
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+        .aspect-table tr:hover {
+            background-color: var(--hover-bg-color); /* Assuming a CSS variable for hover background */
+        }
+        .sentiment-positive { color: #28a745; font-weight: bold; } /* Green */
+        .sentiment-negative { color: #dc3545; font-weight: bold; } /* Red */
+        .sentiment-neutral { color: #6c757d; font-weight: bold; } /* Gray */
+
+        .no-data-message {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-color);
+            font-size: 1.1em;
+        }
+
+        /* Styles for the single main chart */
+        .main-chart-card {
+            background-color: var(--card-bg-color);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-small);
+            margin-top: 30px;
+            margin-left: 20px; /* Adjust to match content block margin */
+            margin-right: 20px; /* Adjust to match content block margin */
+        }
+        .main-chart-card h2 {
+            margin-top: 0;
+            color: var(--text-color);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .main-chart-canvas-container {
+            position: relative;
+            height: 400px; /* A good height for a single chart */
+            width: 100%;
+        }
+        :root {
+            --chart-grid-color: rgba(108, 117, 125, 0.2); 
+            --chart-zeroline-color: var(--text-color, #ffffff); 
+            --chart-tick-color: var(--text-color, #ffffff); 
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="content-header">
+        <h1>Aspect-Based Sentiment Analysis</h1>
+    </div>
+
+    {# Section for the single Diverging Bar Chart #}
+    {% if aspect_summary %}
+        <div class="main-chart-card">
+            <h2>Aspect Sentiment Scores</h2>
+            <div class="main-chart-canvas-container">
+                <canvas id="aspectSentimentScoresChart"></canvas>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="aspect-table-container">
+        {% if aspect_summary %}
+            <p>Below is an aggregate summary of sentiments across various aspects mentioned in your reviews.</p>
+            <table class="aspect-table">
+                <thead>
+                    <tr>
+                        <th>Aspect</th>
+                        <th>Total Mentions</th>
+                        <th class="sentiment-positive">Positive (%)</th>
+                        <th class="sentiment-neutral">Neutral (%)</th>
+                        <th class="sentiment-negative">Negative (%)</th>
+                        <th>Avg. Sentiment Strength</th> 
+                        <th>Dominant Sentiment</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for aspect_data in aspect_summary %}
+                        <tr>
+                            <td><strong>{{ aspect_data.aspect | replace('_', ' ') | title }}</strong></td>
+                            <td>{{ aspect_data.total_mentions }}</td>
+                            <td class="sentiment-positive">{{ aspect_data.positive_percentage }}%</td>
+                            <td class="sentiment-neutral">{{ aspect_data.neutral_percentage }}%</td>
+                            <td class="sentiment-negative">{{ aspect_data.negative_percentage }}%</td>
+                            <td>{{ aspect_data.average_sentiment_strength | round(2) }}</td> 
+                            <td class="sentiment-{{ aspect_data.dominant_sentiment | lower }}">{{ aspect_data.dominant_sentiment }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="no-data-message">
+                <p>No aspect-based sentiment data available yet. Please submit some reviews!</p>
+                <a href="{{ url_for('my_reviews') }}" class="btn btn-primary">Add Reviews</a>
+            </div>
+        {% endif %}
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set global Chart.js defaults for text color to ensure visibility on dark themes
+            Chart.defaults.color = 'white'; 
+            Chart.defaults.font.size = 12; 
+            Chart.defaults.font.family = "'Roboto', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif"; 
+
+            const aspectSummary = {{ aspect_summary | tojson }}; 
+            const chartCanvas = document.getElementById('aspectSentimentScoresChart');
+
+            if (aspectSummary.length > 0 && chartCanvas) {
+                const labels = aspectSummary.map(data => data.aspect.replace('_', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '));
+                const scores = aspectSummary.map(data => data.average_sentiment_strength);
+
+                // Define colors based on score
+                const backgroundColors = scores.map(score => {
+                    if (score > 0) return 'rgba(40, 167, 69, 1)'; // Positive (Green) - NOW FULLY OPAQUE
+                    if (score < 0) return 'rgba(220, 53, 69, 1)'; // Negative (Red) - NOW FULLY OPAQUE
+                    return 'rgba(108, 117, 125, 0.7)'; // Neutral (Gray) - KEPT SEMI-TRANSPARENT FOR SUBTLETY
+                });
+                const borderColors = scores.map(score => {
+                    if (score > 0) return 'rgba(40, 167, 69, 1)';
+                    if (score < 0) return 'rgba(220, 53, 69, 1)';
+                    return 'rgba(108, 117, 125, 1)';
+                });
+
+                new Chart(chartCanvas.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Average Sentiment Score',
+                            data: scores,
+                            backgroundColor: backgroundColors,
+                            borderColor: borderColors,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'x', 
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false, 
+                            },
+                            title: {
+                                display: true, 
+                                text: 'Aspect Sentiment Scores',
+                                color: 'white' 
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += context.parsed.y.toFixed(2);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { 
+                                title: {
+                                    display: false,
+                                },
+                                ticks: {
+                                    color: 'white', 
+                                    maxRotation: 45, 
+                                    minRotation: 45
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.2)', 
+                                    borderColor: 'white' 
+                                }
+                            },
+                            y: { 
+                                beginAtZero: false, 
+                                min: -1, 
+                                max: 1,  
+                                ticks: {
+                                    color: 'white', 
+                                    callback: function(value, index, ticks) {
+                                        if (value === 1.0) return 'Positive';
+                                        if (value === 0.0) return 'Neutral';
+                                        if (value === -1.0) return 'Negative';
+                                        return value.toFixed(1); 
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.2)', 
+                                    borderColor: 'white', 
+                                    zeroLineColor: 'white', 
+                                    zeroLineWidth: 2 
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Add active class to 'Aspect Analysis' sidebar link
+            const aspectAnalysisLink = document.querySelector('.sidebar-nav ul li a[href="{{ url_for('analysis.aspect_analysis_page') }}"]');
+            if (aspectAnalysisLink) {
+                aspectAnalysisLink.classList.add('active');
+            }
+        });
+    </script>
+{% endblock %}
