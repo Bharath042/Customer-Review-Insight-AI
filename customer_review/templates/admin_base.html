@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin Dashboard | ReviewSense AI{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard_theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='toast.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {% block head_extra %}{% endblock %} {# Placeholder for extra head content #}
+</head>
+<body class="admin-dashboard">
+    <div class="dashboard-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-header">Admin Panel</div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="{{ url_for('admin_dashboard.admin_home') }}" {% if request.endpoint == 'admin_dashboard.admin_home' %}class="active"{% endif %}>
+                        <i class="fas fa-chart-line"></i> <span>Dashboard</span>
+                    </a></li>
+                    <li><a href="{{ url_for('admin_dashboard.analysis_page') }}" {% if request.endpoint == 'admin_dashboard.analysis_page' %}class="active"{% endif %}>
+                        <i class="fas fa-clipboard-list"></i> <span>Reviews</span>
+                    </a></li>
+                    <li><a href="{{ url_for('admin_dashboard.manage_aspect_categories') }}" {% if request.endpoint == 'admin_dashboard.manage_aspect_categories' or request.endpoint == 'admin_dashboard.edit_aspect_category' %}class="active"{% endif %}>
+                        <i class="fas fa-tags"></i> <span>Manage Aspect Categories</span>
+                    </a></li>
+                    <li><a href="{{ url_for('admin_dashboard.user_management') }}" {% if request.endpoint == 'admin_dashboard.user_management' %}class="active"{% endif %}>
+                        <i class="fas fa-users-cog"></i> <span>User Management</span>
+                    </a></li>
+                </ul>
+                <ul class="logout-nav">
+                    <li><a href="{{ url_for('admin_dashboard.admin_logout') }}"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            {% include '_flashes.html' %} {# Assuming _flashes.html is in your templates directory #}
+            <header class="header">
+                {# Allow individual pages to set their own header or default to Dashboard #}
+                <h1>{% block header_title %}Dashboard{% endblock %}</h1>
+            </header>
+
+            {% block admin_content %}
+            {# This block will be overridden by specific admin pages #}
+            {% endblock %}
+        </main>
+    </div>
+    
+    <script src="{{ url_for('static', filename='toast.js') }}"></script>
+    {# Placeholder for page-specific scripts #}
+    {% block scripts_extra %}{% endblock %} 
+</body>
+</html>

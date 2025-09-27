@@ -83,52 +83,98 @@
         <h1>Aspect-Based Sentiment Analysis</h1>
     </div>
 
-    {# Section for the single Diverging Bar Chart #}
-    {% if aspect_summary %}
+    {# Combined check for any data to display the chart and tables #}
+    {% if categorized_aspect_summary or uncategorized_aspect_summary %}
         <div class="main-chart-card">
-            <h2>Aspect Sentiment Scores</h2>
+            <h2>Overall Aspect Sentiment Scores</h2>
             <div class="main-chart-canvas-container">
                 <canvas id="aspectSentimentScoresChart"></canvas>
             </div>
         </div>
-    {% endif %}
 
-    <div class="aspect-table-container">
-        {% if aspect_summary %}
-            <p>Below is an aggregate summary of sentiments across various aspects mentioned in your reviews.</p>
-            <table class="aspect-table">
-                <thead>
-                    <tr>
-                        <th>Aspect</th>
-                        <th>Total Mentions</th>
-                        <th class="sentiment-positive">Positive (%)</th>
-                        <th class="sentiment-neutral">Neutral (%)</th>
-                        <th class="sentiment-negative">Negative (%)</th>
-                        <th>Avg. Sentiment Strength</th> 
-                        <th>Dominant Sentiment</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for aspect_data in aspect_summary %}
+        {# START: Section for Categorized Aspects #}
+        <div class="aspect-table-container mt-4">
+            <h3>Predefined Aspect Categories</h3>
+            {% if categorized_aspect_summary %}
+                <p>Below is an aggregate summary of sentiments across your predefined aspect categories.</p>
+                <table class="aspect-table">
+                    <thead>
                         <tr>
-                            <td><strong>{{ aspect_data.aspect | replace('_', ' ') | title }}</strong></td>
-                            <td>{{ aspect_data.total_mentions }}</td>
-                            <td class="sentiment-positive">{{ aspect_data.positive_percentage }}%</td>
-                            <td class="sentiment-neutral">{{ aspect_data.neutral_percentage }}%</td>
-                            <td class="sentiment-negative">{{ aspect_data.negative_percentage }}%</td>
-                            <td>{{ aspect_data.average_sentiment_strength | round(2) }}</td> 
-                            <td class="sentiment-{{ aspect_data.dominant_sentiment | lower }}">{{ aspect_data.dominant_sentiment }}</td>
+                            <th>Aspect Category</th>
+                            <th>Total Mentions</th>
+                            <th class="sentiment-positive">Positive (%)</th>
+                            <th class="sentiment-neutral">Neutral (%)</th>
+                            <th class="sentiment-negative">Negative (%)</th>
+                            <th>Avg. Sentiment Strength</th> 
+                            <th>Dominant Sentiment</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <div class="no-data-message">
-                <p>No aspect-based sentiment data available yet. Please submit some reviews!</p>
-                <a href="{{ url_for('my_reviews') }}" class="btn btn-primary">Add Reviews</a>
-            </div>
-        {% endif %}
-    </div>
+                    </thead>
+                    <tbody>
+                        {% for aspect_data in categorized_aspect_summary %}
+                            <tr>
+                                <td><strong>{{ aspect_data.aspect | replace('_', ' ') | title }}</strong></td>
+                                <td>{{ aspect_data.total_mentions }}</td>
+                                <td class="sentiment-positive">{{ aspect_data.positive_percentage }}%</td>
+                                <td class="sentiment-neutral">{{ aspect_data.neutral_percentage }}%</td>
+                                <td class="sentiment-negative">{{ aspect_data.negative_percentage }}%</td>
+                                <td>{{ aspect_data.average_sentiment_strength | round(2) }}</td> 
+                                <td class="sentiment-{{ aspect_data.dominant_sentiment | lower }}">{{ aspect_data.dominant_sentiment }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="no-data-message">
+                    <p>No data available for predefined aspect categories yet.</p>
+                </div>
+            {% endif %}
+        </div>
+        {# END: Section for Categorized Aspects #}
+
+        {# START: Section for Extracted (Uncategorized) Aspects #}
+        <div class="aspect-table-container mt-4">
+            <h3>Extracted Aspects (Uncategorized)</h3>
+            {% if uncategorized_aspect_summary %}
+                <p>These are aspects that were extracted from your reviews but do not belong to any predefined category.</p>
+                <table class="aspect-table">
+                    <thead>
+                        <tr>
+                            <th>Extracted Aspect</th>
+                            <th>Total Mentions</th>
+                            <th class="sentiment-positive">Positive (%)</th>
+                            <th class="sentiment-neutral">Neutral (%)</th>
+                            <th class="sentiment-negative">Negative (%)</th>
+                            <th>Avg. Sentiment Strength</th> 
+                            <th>Dominant Sentiment</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for aspect_data in uncategorized_aspect_summary %}
+                            <tr>
+                                <td><strong>{{ aspect_data.aspect | replace('_', ' ') | title }}</strong></td> {# 'aspect' here refers to raw_extracted_aspect #}
+                                <td>{{ aspect_data.total_mentions }}</td>
+                                <td class="sentiment-positive">{{ aspect_data.positive_percentage }}%</td>
+                                <td class="sentiment-neutral">{{ aspect_data.neutral_percentage }}%</td>
+                                <td class="sentiment-negative">{{ aspect_data.negative_percentage }}%</td>
+                                <td>{{ aspect_data.average_sentiment_strength | round(2) }}</td> 
+                                <td class="sentiment-{{ aspect_data.dominant_sentiment | lower }}">{{ aspect_data.dominant_sentiment }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="no-data-message">
+                    <p>No uncategorized aspects have been extracted from your reviews yet.</p>
+                </div>
+            {% endif %}
+        </div>
+        {# END: Section for Extracted (Uncategorized) Aspects #}
+
+    {% else %}
+        <div class="no-data-message">
+            <p>No aspect-based sentiment data available yet. Please submit some reviews!</p>
+        </div>
+    {% endif %}
 
 {% endblock %}
 
@@ -141,12 +187,16 @@
             Chart.defaults.font.size = 12; 
             Chart.defaults.font.family = "'Roboto', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif"; 
 
-            const aspectSummary = {{ aspect_summary | tojson }}; 
+            // Combine both categorized and uncategorized aspects for the single chart
+            const categorizedAspectSummary = {{ categorized_aspect_summary | tojson }}; 
+            const uncategorizedAspectSummary = {{ uncategorized_aspect_summary | tojson }}; 
+            const combinedAspectSummary = [...categorizedAspectSummary, ...uncategorizedAspectSummary];
+
             const chartCanvas = document.getElementById('aspectSentimentScoresChart');
 
-            if (aspectSummary.length > 0 && chartCanvas) {
-                const labels = aspectSummary.map(data => data.aspect.replace('_', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '));
-                const scores = aspectSummary.map(data => data.average_sentiment_strength);
+            if (combinedAspectSummary.length > 0 && chartCanvas) {
+                const labels = combinedAspectSummary.map(data => data.aspect.replace('_', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '));
+                const scores = combinedAspectSummary.map(data => data.average_sentiment_strength);
 
                 // Define colors based on score
                 const backgroundColors = scores.map(score => {
@@ -218,7 +268,7 @@
                             y: { 
                                 beginAtZero: false, 
                                 min: -1, 
-                                max: 1,  
+                                max: 1,  
                                 ticks: {
                                     color: 'white', 
                                     callback: function(value, index, ticks) {

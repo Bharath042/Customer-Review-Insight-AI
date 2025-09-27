@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: reviewdb_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # <--- ADD THIS LINE
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  web:
+    build: . # Build from the Dockerfile in the current directory
+    container_name: review_app_web
+    ports:
+      - "5000:5000" # Map host port 5000 to container port 5000
+    environment:
+      SECRET_KEY: ${FLASK_SECRET_KEY}
+      DATABASE_URL: mysql+pymysql://${DB_USER}:${DB_PASSWORD}@db:3306/${DB_NAME}
+      FLASK_DEBUG: "0"
+      NLTK_DATA: /usr/local/nltk_data
+    volumes:
+      - .:/app # Mount current directory into container (for development, optional for production)
+    depends_on:
+      db:
+        condition: service_healthy # Ensure DB is healthy before starting web app
+    restart: unless-stopped
+    command: ["python", "-m", "gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+
+volumes:
+  db_data: # Define the named volume for database persistence

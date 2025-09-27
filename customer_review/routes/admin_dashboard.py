@@ -1,11 +1,11 @@
 # routes/admin_dashboard.py
 
 from flask import Blueprint, render_template, session, redirect, url_for, flash, request
-from models import db, User, RawText, Admin, AspectSentiment
+from models import db, User, RawText, Admin, AspectSentiment, AspectCategory # <--- NEW IMPORT: AspectCategory
 from werkzeug.security import check_password_hash
 import functools
 from nlp_processor import nlp_processor
-from sqlalchemy import func # IMPORTANT: Ensure this import is present
+from sqlalchemy import func 
 
 admin_dashboard_bp = Blueprint('admin_dashboard', __name__)
 
@@ -82,7 +82,6 @@ def admin_home():
     
     recent_reviews_for_template = []
     for review in recent_reviews:
-        # Assuming review.sentiment_label might be a property or a direct attribute
         sentiment_label = review.sentiment if hasattr(review, 'sentiment') else 'UNKNOWN'
         
         recent_reviews_for_template.append({
@@ -91,7 +90,6 @@ def admin_home():
             'sentiment_label': sentiment_label,
             'timestamp': review.timestamp.strftime('%Y-%m-%d %H:%M') if review.timestamp else 'N/A' # Format timestamp
         })
-
 
     # Render the template, passing all required data
     return render_template(
@@ -145,3 +143,101 @@ def analysis_page():
         })
 
     return render_template('admin_analysis.html', results=results, current_filter=current_filter, current_sort=current_sort)
+
+# --- NEW ROUTES FOR ASPECT CATEGORY MANAGEMENT ---
+
+@admin_dashboard_bp.route('/admin/aspect_categories', methods=['GET', 'POST'])
+@admin_login_required
+def manage_aspect_categories():
+    if request.method == 'POST':
+        category_name = request.form.get('name').strip()
+        category_description = request.form.get('description').strip()
+
+        if not category_name:
+            flash("Category name cannot be empty.", "danger")
+            return redirect(url_for('admin_dashboard.manage_aspect_categories'))
+
+        # Check for duplicate category name
+        existing_category = AspectCategory.query.filter(func.lower(AspectCategory.name) == func.lower(category_name)).first()
+        if existing_category:
+            flash(f"An aspect category with the name '{category_name}' already exists.", "danger")
+            return redirect(url_for('admin_dashboard.manage_aspect_categories'))
+
+        new_category = AspectCategory(name=category_name, description=category_description)
+        try:
+            db.session.add(new_category)
+            db.session.commit()
+            # After adding/modifying categories, force a re-load in the nlp_processor
+            if nlp_processor.initialized:
+                nlp_processor._load_aspect_categories()
+            flash(f"Aspect category '{category_name}' added successfully!", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error adding aspect category: {e}", "danger")
+        
+        return redirect(url_for('admin_dashboard.manage_aspect_categories'))
+    
+    # GET request: Display existing categories
+    categories = AspectCategory.query.order_by(AspectCategory.name.asc()).all()
+    return render_template('admin_aspect_categories.html', categories=categories)
+
+
+@admin_dashboard_bp.route('/admin/aspect_categories/edit/<int:category_id>', methods=['GET', 'POST'])
+@admin_login_required
+def edit_aspect_category(category_id):
+    category = AspectCategory.query.get_or_404(category_id)
+
+    if request.method == 'POST':
+        new_name = request.form.get('name').strip()
+        new_description = request.form.get('description').strip()
+
+        if not new_name:
+            flash("Category name cannot be empty.", "danger")
+            return redirect(url_for('admin_dashboard.edit_aspect_category', category_id=category.id))
+
+        # Check for duplicate name, excluding the current category being edited
+        existing_category = AspectCategory.query.filter(
+            func.lower(AspectCategory.name) == func.lower(new_name),
+            AspectCategory.id != category_id
+        ).first()
+
+        if existing_category:
+            flash(f"An aspect category with the name '{new_name}' already exists.", "danger")
+            return redirect(url_for('admin_dashboard.edit_aspect_category', category_id=category.id))
+
+        try:
+            category.name = new_name
+            category.description = new_description
+            db.session.commit()
+            # After adding/modifying categories, force a re-load in the nlp_processor
+            if nlp_processor.initialized:
+                nlp_processor._load_aspect_categories()
+            flash(f"Aspect category '{category.name}' updated successfully!", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error updating aspect category: {e}", "danger")
+        
+        return redirect(url_for('admin_dashboard.manage_aspect_categories'))
+
+    return render_template('admin_edit_aspect_category.html', category=category)
+
+@admin_dashboard_bp.route('/admin/aspect_categories/delete/<int:category_id>', methods=['POST'])
+@admin_login_required
+def delete_aspect_category(category_id):
+    category = AspectCategory.query.get_or_404(category_id)
+    category_name = category.name # Store name before deletion
+
+    try:
+        # When an AspectCategory is deleted, its aspect_category_id in AspectSentiment
+        # will be set to NULL due to ON DELETE SET NULL constraint. No cascade delete of aspects.
+        db.session.delete(category)
+        db.session.commit()
+        # After adding/modifying categories, force a re-load in the nlp_processor
+        if nlp_processor.initialized:
+            nlp_processor._load_aspect_categories()
+        flash(f"Aspect category '{category_name}' deleted successfully!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting aspect category: {e}", "danger")
+    
+    return redirect(url_for('admin_dashboard.manage_aspect_categories'))

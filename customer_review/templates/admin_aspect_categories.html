@@ -1,0 +1,77 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Manage Aspect Categories - Admin{% endblock %}
+{% block header_title %}Manage Aspect Categories{% endblock %}
+
+{% block admin_content %}
+{# Main content area for aspect categories, mimicking the structure seen in other admin pages #}
+<div class="container-fluid py-4"> {# Use container-fluid for full width, or container for fixed width #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {# Card for Adding New Aspect Category #}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3>Add New Aspect Category</h3>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('admin_dashboard.manage_aspect_categories') }}" method="POST">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Category Name</label>
+                    <input type="text" class="form-control" id="name" name="name" required placeholder="e.g., Battery Life">
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description (Optional)</label>
+                    <textarea class="form-control" id="description" name="description" rows="3" placeholder="Describe this category, e.g., 'Covers aspects related to power duration and charging.'"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Category</button>
+            </form>
+        </div>
+    </div>
+
+    {# Card for Existing Aspect Categories #}
+    <div class="card">
+        <div class="card-header">
+            <h3>Existing Aspect Categories</h3>
+        </div>
+        <div class="card-body">
+            {% if categories %}
+                <div class="table-responsive"> {# Use table-responsive for better mobile display #}
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category in categories %}
+                                <tr>
+                                    <td>{{ category.id }}</td>
+                                    <td>{{ category.name }}</td>
+                                    <td>{{ category.description if category.description else 'N/A' }}</td>
+                                    <td>
+                                        <a href="{{ url_for('admin_dashboard.edit_aspect_category', category_id=category.id) }}" class="btn btn-sm btn-info me-2">Edit</a>
+                                        <form action="{{ url_for('admin_dashboard.delete_aspect_category', category_id=category.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete the category &quot;{{ category.name }}&quot;? This will set any associated aspects to Uncategorized.');">
+                                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p>No aspect categories have been added yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

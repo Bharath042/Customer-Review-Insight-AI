@@ -3,7 +3,7 @@ import re
 from routes.admin_auth import admin_auth_bp
 from routes.admin_dashboard import admin_dashboard_bp
 from werkzeug.security import generate_password_hash, check_password_hash
-from nlp_processor import nlp_processor  # Correctly importing the singleton instance
+from nlp_processor import NLPProcessor 
 from models import User, RawText, db, AspectSentiment, Admin
 from flask_cors import CORS
 import jwt
@@ -12,27 +12,57 @@ import os
 from dotenv import load_dotenv
 from routes.analysis import analysis_bp
 from sqlalchemy.orm import joinedload
-import pandas as pd # Import pandas for CSV processing
+import pandas as pd 
+import logging 
+from flask_migrate import Migrate
 
+# Load environment variables
 load_dotenv()
+
+# Configure basic logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
 
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'supersecretkey')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'mysql+pymysql://root:Geethasri%402005@localhost:3306/reviewdb')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SESSION_TYPE'] = 'filesystem'
+# Configuration for Flask app
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or \
+                           os.environ.get('FLASK_SECRET_KEY') or \
+                           'your_super_secret_dev_key' 
 
+if not app.config['SECRET_KEY']:
+    logger.error("SECRET_KEY is not set. This is a security risk!")
+    app.config['SECRET_KEY'] = 'a_fallback_secret_key_that_should_not_be_used_in_prod'
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+if not app.config['SQLALCHEMY_DATABASE_URI']:
+    logger.error("DATABASE_URL is not set. Database connection will likely fail without a local MySQL.")
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:admin%40123@localhost:3306/customer_review_db'
+
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SESSION_TYPE'] = 'filesystem' 
+
+# Initialize SQLAlchemy with the Flask app
 db.init_app(app)
 
+migrate = Migrate(app, db)
+
+# --- DEBUGGING: Print resolved configs ---
+logger.info(f"Resolved SECRET_KEY (first 5 chars): {app.config['SECRET_KEY'][:5]}...")
+logger.info(f"Resolved SQLALCHEMY_DATABASE_URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
+# --- END DEBUGGING ---
+
+# --- Global placeholder for the NLPProcessor instance ---
+nlp_processor_instance = None 
+
+# Register blueprints
 app.register_blueprint(admin_auth_bp)
 app.register_blueprint(admin_dashboard_bp)
 app.register_blueprint(analysis_bp)
 
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
 
 # Helper function to highlight aspects in text
 def _highlight_aspects_in_text(review_content, aspect_sentiments):
@@ -44,11 +74,12 @@ def _highlight_aspects_in_text(review_content, aspect_sentiments):
     if not review_content or not aspect_sentiments:
         return review_content
 
-    if nlp_processor.nlp is None:
-        print("WARNING: spaCy NLP model not initialized in _highlight_aspects_in_text. Aspect highlighting skipped.")
+    # Use the global nlp_processor_instance here
+    if nlp_processor_instance is None or nlp_processor_instance.nlp is None:
+        logger.warning("spaCy NLP model not initialized in _highlight_aspects_in_text. Aspect highlighting skipped.")
         return review_content
 
-    doc = nlp_processor.nlp(review_content)
+    doc = nlp_processor_instance.nlp(review_content) 
 
     final_highlighted_review_parts = []
 
@@ -72,7 +103,7 @@ def _highlight_aspects_in_text(review_content, aspect_sentiments):
         sorted_aspects = sorted(current_sentence_aspects, key=lambda a: a.start_char)
 
         sentence_segments = []
-        last_idx = 0 # This will be the index within the *current sentence_text*
+        last_idx = 0 
 
         for aspect_obj in sorted_aspects:
             # Only highlight POSITIVE and NEGATIVE aspects, NOT NEUTRAL.
@@ -114,7 +145,6 @@ def _highlight_aspects_in_text(review_content, aspect_sentiments):
         final_highlighted_review_parts.append("".join(sentence_segments))
 
     return "".join(final_highlighted_review_parts)
-
 
 
 @app.route('/')
@@ -167,6 +197,23 @@ def my_reviews():
 
     user = User.query.get(session["user_id"])
 
+    # Ensure NLPProcessor is initialized if it somehow wasn't (e.g. during specific requests)
+    # This acts as a safeguard. The main initialization is in the app context startup.
+    global nlp_processor_instance
+    if nlp_processor_instance is None or not nlp_processor_instance.initialized:
+        logger.warning("nlp_processor_instance not fully initialized within my_reviews. Attempting re-init.")
+        # This will get the existing singleton if it was partially created, or create a new one
+        nlp_processor_instance = NLPProcessor() 
+        if not nlp_processor_instance.init_nlp():
+            logger.error("Failed to re-initialize NLP models. Cannot process reviews.")
+            flash("Error: NLP models could not be initialized. Please contact support.", "danger")
+            # Consider returning early or providing a degraded experience
+            raw_texts = RawText.query.filter_by(user_id=user.id).options(db.joinedload(RawText.aspect_sentiments)).order_by(RawText.id.desc()).all()
+            for text in raw_texts:
+                text.highlighted_content = text.content # No highlighting if NLP failed
+            return render_template("my_reviews.html", raw_texts=raw_texts)
+
+
     if request.method == "POST":
         if "file" in request.files:
             file = request.files.get("file")
@@ -180,8 +227,8 @@ def my_reviews():
                         review_str = str(review_text)
 
                         # Process overall sentiment
-                        overall_sentiment_result = nlp_processor.analyze_sentiment(review_str)
-                        print(f"DEBUG: CSV Review Overall Sentiment: {overall_sentiment_result['label']}, Score: {overall_sentiment_result['score']}")
+                        overall_sentiment_result = nlp_processor_instance.analyze_sentiment(review_str) 
+                        logger.info(f"CSV Review Overall Sentiment: {overall_sentiment_result['label']}, Score: {overall_sentiment_result['score']}")
 
                         new_raw_text = RawText(
                             content=review_str,
@@ -193,32 +240,28 @@ def my_reviews():
                         db.session.flush() # Flush to get new_raw_text.id
 
                         # Process aspects
-                        extracted_aspects_raw = nlp_processor.extract_aspects(review_str)
+                        extracted_aspects_raw = nlp_processor_instance.extract_aspects(review_str) 
 
                         # Store fully analyzed aspects to save to DB
-                        fully_analyzed_aspects = []
                         for aspect_data_raw in extracted_aspects_raw:
-                            aspect_sentiment_result = nlp_processor.analyze_aspect_sentiment(aspect_data_raw['sentence'])
+                            aspect_sentiment_result = nlp_processor_instance.analyze_aspect_sentiment(
+                                aspect_data_raw.get('sentence') 
+                            )
                             
-                            # Add sentiment and score to the aspect_data_raw dictionary
-                            aspect_data_raw['sentiment'] = aspect_sentiment_result['label']
-                            aspect_data_raw['score'] = aspect_sentiment_result['score']
-                            
-                            fully_analyzed_aspects.append(aspect_data_raw)
-
-
-                        for aspect_data in fully_analyzed_aspects:
+                            # Create and save AspectSentiment entry
                             new_aspect_sentiment = AspectSentiment(
                                 raw_text_id=new_raw_text.id,
-                                aspect=aspect_data['aspect'],
-                                keyword_found=aspect_data['keyword_found'],
-                                sentence=aspect_data['sentence'],
-                                sentiment=aspect_data['sentiment'],
-                                score=aspect_data['score'],
-                                start_char=aspect_data['start_char'],
-                                end_char=aspect_data['end_char']
+                                raw_extracted_aspect=aspect_data_raw['raw_extracted_aspect'],
+                                keyword_found=aspect_data_raw['keyword_found'],
+                                sentence=aspect_data_raw['sentence'],
+                                sentiment=aspect_sentiment_result['label'],
+                                score=aspect_sentiment_result['score'],
+                                aspect_category_id=aspect_data_raw['aspect_category_id'],
+                                start_char=aspect_data_raw['start_char'],
+                                end_char=aspect_data_raw['end_char']
                             )
                             db.session.add(new_aspect_sentiment)
+                            logger.debug(f"Created AspectSentiment for '{new_aspect_sentiment.raw_extracted_aspect}'. Category ID: {new_aspect_sentiment.aspect_category_id}, Keyword: '{new_aspect_sentiment.keyword_found}', Sentiment: {new_aspect_sentiment.sentiment}")
 
                         db.session.commit() # Commit changes for this review and its aspects
                         reviews_processed_count += 1
@@ -229,6 +272,7 @@ def my_reviews():
                         flash("No valid reviews found in CSV.", "warning")
 
                 except Exception as e:
+                    logger.error(f"Error processing file: {e}", exc_info=True) 
                     flash(f"Error processing file: {e}", "danger")
             else:
                 flash("Please select a valid CSV file.", "danger")
@@ -237,8 +281,8 @@ def my_reviews():
             raw_text_content = request.form.get("raw_text")
             if raw_text_content.strip():
                 # Process overall sentiment
-                overall_sentiment_result = nlp_processor.analyze_sentiment(raw_text_content)
-                print(f"DEBUG: Raw Text Overall Sentiment: {overall_sentiment_result['label']}, Score: {overall_sentiment_result['score']}")
+                overall_sentiment_result = nlp_processor_instance.analyze_sentiment(raw_text_content) 
+                logger.info(f"Raw Text Overall Sentiment: {overall_sentiment_result['label']}, Score: {overall_sentiment_result['score']}")
 
                 new_raw_text = RawText(
                     content=raw_text_content,
@@ -250,32 +294,26 @@ def my_reviews():
                 db.session.flush() # Flush to get new_raw_text.id
 
                 # Process aspects
-                extracted_aspects_raw = nlp_processor.extract_aspects(raw_text_content)
+                extracted_aspects_raw = nlp_processor_instance.extract_aspects(raw_text_content) 
 
                 # Store fully analyzed aspects to save to DB
-                fully_analyzed_aspects = []
                 for aspect_data_raw in extracted_aspects_raw:
-                    aspect_sentiment_result = nlp_processor.analyze_aspect_sentiment(aspect_data_raw['sentence'])
+                    aspect_sentiment_result = nlp_processor_instance.analyze_aspect_sentiment(aspect_data_raw['sentence'])
                     
-                    # Add sentiment and score to the aspect_data_raw dictionary
-                    aspect_data_raw['sentiment'] = aspect_sentiment_result['label']
-                    aspect_data_raw['score'] = aspect_sentiment_result['score']
-                    
-                    fully_analyzed_aspects.append(aspect_data_raw)
-
-
-                for aspect_data in fully_analyzed_aspects:
+                    # Create and save AspectSentiment entry
                     new_aspect_sentiment = AspectSentiment(
                         raw_text_id=new_raw_text.id,
-                        aspect=aspect_data['aspect'],
-                        keyword_found=aspect_data['keyword_found'],
-                        sentence=aspect_data['sentence'],
-                        sentiment=aspect_data['sentiment'],
-                        score=aspect_data['score'],
-                        start_char=aspect_data['start_char'],
-                        end_char=aspect_data['end_char']
+                        raw_extracted_aspect=aspect_data_raw['raw_extracted_aspect'], 
+                        keyword_found=aspect_data_raw['keyword_found'],
+                        sentence=aspect_data_raw['sentence'],
+                        sentiment=aspect_sentiment_result['label'], 
+                        score=aspect_sentiment_result['score'], 
+                        aspect_category_id=aspect_data_raw['aspect_category_id'],
+                        start_char=aspect_data_raw['start_char'],
+                        end_char=aspect_data_raw['end_char']
                     )
                     db.session.add(new_aspect_sentiment)
+                    logger.debug(f"Created AspectSentiment for '{new_aspect_sentiment.raw_extracted_aspect}'. Category ID: {new_aspect_sentiment.aspect_category_id}, Keyword: '{new_aspect_sentiment.keyword_found}', Sentiment: {new_aspect_sentiment.sentiment}")
 
                 db.session.commit() # Commit changes for this review and its aspects
                 flash("Raw text saved & analyzed successfully!", "success")
@@ -287,12 +325,12 @@ def my_reviews():
     raw_texts = RawText.query.filter_by(user_id=user.id).options(db.joinedload(RawText.aspect_sentiments)).order_by(RawText.id.desc()).all()
 
     for text in raw_texts:
-        print(f"\n--- Review ID: {text.id} ---")
-        print(f"Overall Review Content: {text.content}")
-        print(f"Overall Review Sentiment: {text.sentiment}, Stored Score: {text.score}")
+        logger.info(f"\n--- Review ID: {text.id} ---")
+        logger.info(f"Overall Review Content: {text.content}")
+        logger.info(f"Overall Review Sentiment: {text.sentiment}, Stored Score: {text.score}")
         for aspect_obj in text.aspect_sentiments:
-            print(f"  Aspect: '{aspect_obj.keyword_found}' (Sentence: '{aspect_obj.sentence}') -> Sentiment: {aspect_obj.sentiment}, Score: {aspect_obj.score}")
-        print("--------------------")
+            logger.info(f"  Aspect: '{aspect_obj.keyword_found}' (Sentence: '{aspect_obj.sentence}') -> Sentiment: {aspect_obj.sentiment}, Score: {aspect_obj.score}")
+        logger.info("--------------------")
 
         text.highlighted_content = _highlight_aspects_in_text(text.content, text.aspect_sentiments)
 
@@ -384,22 +422,33 @@ def create_admin():
     password = input("Enter admin password: ")
 
     if Admin.query.filter_by(admin_username=username).first():
-        print(f"Error: Admin with username {username} already exists.")
+        logger.error(f"Error: Admin with username {username} already exists.")
         return
 
     hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
     new_admin = Admin(admin_username=username, password=hashed_password)
     db.session.add(new_admin)
     db.session.commit()
-    print(f"Admin {username} created successfully!")
+    logger.info(f"Admin {username} created successfully!")
 
 
 # ------------------------
 # Run App
 # ------------------------
+with app.app_context():
+    # It is crucial that 'global nlp_processor_instance' is the FIRST statement
+    # if you intend to ASSIGN to it within this block.
+
+    db.create_all() 
+    logger.info("Database tables checked/created.")
+
+    # NOW initialize NLP models within the app context using the global instance
+    nlp_processor_instance = NLPProcessor() # Get (or create if first time) the singleton
+    if not nlp_processor_instance.init_nlp():
+        logger.error("NLP models failed to initialize. Application may not function correctly.")
+    else:
+        logger.info("NLP models initialized successfully.")
+
+# Only run app directly if this script is executed, not when imported by Gunicorn
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    if not nlp_processor.init_nlp():
-        print("ERROR: NLP models failed to initialize. Application may not function correctly.")
     app.run(debug=True)
