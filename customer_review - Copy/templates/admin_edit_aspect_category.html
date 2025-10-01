@@ -1,0 +1,43 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Edit Aspect Category - Admin{% endblock %}
+{% block header_title %}Edit Aspect Category{% endblock %}
+
+{% block admin_content %}
+{# Main content area for editing an aspect category #}
+<div class="container-fluid py-4">
+    <h2 class="mb-4">Edit Aspect Category: {{ category.name }}</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Edit Details</h3>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('admin_dashboard.edit_aspect_category', category_id=category.id) }}" method="POST">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Category Name</label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ category.name }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description (Optional)</label>
+                    <textarea class="form-control" id="description" name="description" rows="3">{{ category.description }}</textarea>
+                </div>
+                    <div class="mb-3">
+                        <label for="keywords" class="form-label">Keywords (comma-separated)</label>
+                        <input type="text" class="form-control" id="keywords" name="keywords" value="{{ category.keywords|map(attribute='keyword')|join(', ') }}" placeholder="e.g., photo, image, picture">
+                    </div>
+                <button type="submit" class="btn btn-primary">Update Category</button>
+                <a href="{{ url_for('admin_dashboard.manage_aspect_categories') }}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

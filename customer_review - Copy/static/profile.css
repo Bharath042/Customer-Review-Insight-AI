@@ -1,0 +1,150 @@
+/* Profile Container */
+.profile-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 40px auto;
+    max-width: 900px;
+    padding: 20px;
+    gap: 30px;
+}
+
+/* Section Card */
+.card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    padding: 25px 30px;
+    width: 100%;
+    max-width: 600px;
+    border-left: 6px solid #1e90ff;
+    transition: transform 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+}
+
+/* Remove border for welcome + logout */
+.card.no-border {
+    background: none;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+}
+
+.card-title {
+    font-size: 22px;
+    color: #1e3a8a;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #e0e7ff;
+    padding-bottom: 8px;
+    text-align: center;
+}
+
+/* List Styling */
+.item-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.item {
+    background: #f8fafc;
+    padding: 12px 15px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    font-size: 15px;
+    color: #334155;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s ease;
+}
+
+.item:hover {
+    background: #e0f2fe;
+}
+
+.item.empty {
+    text-align: center;
+    color: #94a3b8;
+    font-style: italic;
+    border: 1px dashed #cbd5e1;
+}
+
+/* Align text center */
+.item span {
+    flex: 1;
+    text-align: center;
+}
+
+/* Buttons container – with 5px gap */
+.actions {
+    display: flex;
+    gap: 5px;
+}
+
+.actions form {
+    margin: 0;
+}
+
+/* Buttons (default white with border) */
+.item button {
+    background: #ffffff;
+    color: #334155;
+    border: 1px solid #1e90ff;
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+/* Buttons hover effect */
+.item button:hover {
+    background: #1e90ff;
+    color: #ffffff;
+}
+
+/* Input box */
+.item input[type="text"] {
+    padding: 6px 8px;
+    font-size: 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    margin-right: 6px;
+}
+
+/* Delete Button (same style as edit, just different border color) */
+.item .delete-btn {
+    border: 1px solid #dc2626;
+    color: #dc2626;
+    background: #ffffff;
+}
+
+.item .delete-btn:hover {
+    background: #dc2626;
+    color: #ffffff;
+}
+
+/* Logout Button */
+.card.no-border button {
+    background: #ffffff;
+    color: #1e90ff;
+    border: 2px solid #1e90ff;
+    border-radius: 8px;
+    padding: 14px 28px;   /* Bigger */
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 15px;
+}
+
+/* Logout hover */
+.card.no-border button:hover {
+    background: #1e90ff;
+    color: #ffffff;
+}

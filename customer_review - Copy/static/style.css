@@ -1,0 +1,151 @@
+/* ---------- General ---------- */
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f9fbff;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* ---------- Header ---------- */
+.header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    background-color: #007bff;
+    padding: 15px 30px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.profile {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.username {
+    color: #fff;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.logout-btn {
+    padding: 8px 15px;
+    border: none;
+    background-color: #fff;
+    color: #007bff;
+    font-weight: 600;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.logout-btn:hover {
+    background-color: #e6f0ff;
+    color: #0056b3;
+}
+
+/* ---------- Main Container ---------- */
+.container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 20px;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* ---------- Flash Messages ---------- */
+.success {
+    color: #28a745;
+    font-weight: 600;
+}
+.danger {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+/* ---------- Card Sections ---------- */
+.card {
+    border: 1px solid #dce6f2;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    background-color: #f9fbff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    text-align: center;
+}
+
+.card h3 {
+    color: #0056b3;
+    margin-bottom: 15px;
+}
+
+/* ---------- Forms ---------- */
+.card form {
+    display: flex;
+    flex-direction: column;   /* stack vertically */
+    align-items: center;      /* center horizontally */
+    justify-content: center;
+}
+
+input[type="file"], 
+textarea {
+    margin-top: 10px;
+    padding: 12px;
+    width: auto;              /* stop full stretch */
+    min-width: 250px;         /* decent default width */
+    max-width: 80%;           /* responsive */
+    border: 1px solid #ccd6e0;
+    border-radius: 6px;
+    font-size: 15px;
+    outline: none;
+    transition: border 0.3s;
+    background-color: #fff;
+    text-align: center;
+}
+
+input[type="file"]:focus,
+textarea:focus {
+    border-color: #007bff;
+}
+
+/* ---------- Buttons ---------- */
+button {
+    margin-top: 12px;
+    padding: 12px 20px;
+    background-color: #007bff;
+    color: white;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* styles.css or similar */
+
+.highlight-aspect {
+    font-weight: bold;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.highlight-positive {
+    background-color: rgba(144, 238, 144, 0.4); /* Light green */
+    color: #28a745; /* Darker green text */
+}
+
+.highlight-negative {
+    background-color: rgba(255, 99, 71, 0.4); /* Tomato red */
+    color: #dc3545; /* Darker red text */
+}
+
+.highlight-neutral {
+    background-color: rgba(211, 211, 211, 0.4); /* Light gray */
+    color: #6c757d; /* Darker gray text */
+}

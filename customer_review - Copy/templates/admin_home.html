@@ -1,0 +1,166 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Admin Dashboard | ReviewSense AI{% endblock %}
+{% block header_title %}Dashboard{% endblock %} {# Set header title for this page #}
+
+{% block head_extra %}
+<style>
+    /* Match user dashboard styling exactly */
+    .header h1 {
+        font-size: 2.5rem !important;
+        font-weight: 700 !important;
+        margin: 0 0 2rem 0 !important;
+        font-family: 'Poppins', sans-serif !important;
+    }
+    
+    .stat-cards {
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .stat-cards .card h3 {
+        font-size: 0.95rem;
+        font-weight: 500;
+        margin-bottom: 1rem;
+        color: var(--text-secondary);
+        text-transform: none;
+        letter-spacing: 0;
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0;
+        color: var(--text-primary);
+    }
+    
+    .table-container h2,
+    .card h2 {
+        font-size: 1.75rem !important;
+        font-weight: 700 !important;
+        margin-bottom: 1.5rem !important;
+        font-family: 'Poppins', sans-serif !important;
+        color: var(--text-primary) !important;
+    }
+    
+    table {
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    table th {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: none;
+        letter-spacing: 0;
+    }
+    
+    table td {
+        font-size: 0.95rem;
+        font-weight: 400;
+    }
+    
+    /* Match card styling */
+    .card {
+        font-family: 'Poppins', sans-serif;
+    }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<section class="stat-cards">
+    <div class="card">
+        <h3>Total Users</h3>
+        <p class="stat-number">{{ stats.total_users }}</p>
+    </div>
+    <div class="card">
+        <h3>Total Reviews</h3>
+        <p class="stat-number">{{ stats.total_reviews }}</p>
+    </div>
+    <div class="card">
+        <h3>Positive Sentiment</h3>
+        <p class="stat-number">{{ stats.positive_percentage }}%</p>
+    </div>
+    <div class="card">
+        <h3>Negative Sentiment</h3>
+        <p class="stat-number">{{ stats.negative_percentage }}%</p>
+    </div>
+</section>
+
+<div class="dashboard-grid">
+    <div class="side-panel">
+        <section class="table-container card">
+            <h2>Recent Reviews</h2>
+            <table>
+                <thead><tr><th>User ID</th><th>Review</th><th>Sentiment</th></tr></thead>
+                <tbody>
+                    {% for review in recent_reviews %}
+                    <tr>
+                        <td>{{ review.user_id }}</td>
+                        <td>{{ review.content | truncate(30) }}</td>
+                        <td><span class="sentiment-label {{ review.sentiment_label }}">{{ review.sentiment_label }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" style="text-align: center;">No reviews yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </div>
+    <div class="main-panel">
+        <section class="card">
+            <h2>Overall Sentiment Distribution</h2>
+            <div style="max-height: 250px; display: flex; justify-content: center; align-items: center;">
+                <canvas id="sentimentDonutChart"></canvas>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('sentimentDonutChart').getContext('2d');
+        
+        const chartData = {{ chart_data | tojson }};
+
+        const sentimentChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Positive', 'Negative', 'Neutral'],
+                datasets: [{
+                    label: 'Sentiment Distribution',
+                    data: [chartData.positive, chartData.negative, chartData.neutral],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.8)',
+                        'rgba(220, 53, 69, 0.8)',
+                        'rgba(108, 117, 125, 0.8)'
+                    ],
+                    borderColor: [
+                        '#161b22',
+                        '#161b22',
+                        '#161b22'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#e6edf3',
+                            font: {
+                                family: "'Poppins', sans-serif"
+                            },
+                            padding: 34
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
