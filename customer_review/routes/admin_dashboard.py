@@ -124,19 +124,130 @@ def admin_home():
             'timestamp': review.timestamp.strftime('%Y-%m-%d %H:%M') if review.timestamp else 'N/A' # Format timestamp
         })
 
+    # 4. Calculate aspect-based summary statistics (same as user dashboard)
+    all_reviews_with_aspects = RawText.query.options(db.joinedload(RawText.aspect_sentiments)).all()
+    
+    total_aspects = 0
+    positive_count = 0
+    negative_count = 0
+    neutral_count = 0
+    total_confidence = 0
+    confidence_count = 0
+    
+    for text in all_reviews_with_aspects:
+        total_aspects += len(text.aspect_sentiments)
+        for aspect in text.aspect_sentiments:
+            if aspect.sentiment:
+                sentiment_upper = aspect.sentiment.upper()
+                if sentiment_upper == 'POSITIVE':
+                    positive_count += 1
+                elif sentiment_upper == 'NEGATIVE':
+                    negative_count += 1
+                else:
+                    neutral_count += 1
+                
+                if aspect.score is not None:
+                    total_confidence += aspect.score
+                    confidence_count += 1
+    
+    avg_confidence = round((total_confidence / confidence_count * 100)) if confidence_count > 0 else 0
+
     # Render the template, passing all required data
     return render_template(
         'admin_home.html',
         stats=stats,
         recent_reviews=recent_reviews_for_template,
-        chart_data=chart_data
+        chart_data=chart_data,
+        total_aspects=total_aspects,
+        positive_count=positive_count,
+        negative_count=negative_count,
+        neutral_count=neutral_count,
+        avg_confidence=avg_confidence
     )
 
 @admin_dashboard_bp.route('/admin/users')
 @admin_login_required
 def user_management():
+    # Get all users with their review statistics
     users = User.query.all()
-    return render_template('admin_user_management.html', users=users)
+    
+    # Calculate statistics for each user
+    users_with_stats = []
+    for user in users:
+        # Get all reviews for this user
+        user_reviews = RawText.query.filter_by(user_id=user.id).all()
+        
+        # Calculate sentiment counts
+        positive_count = sum(1 for r in user_reviews if r.sentiment and r.sentiment.lower() == 'positive')
+        negative_count = sum(1 for r in user_reviews if r.sentiment and r.sentiment.lower() == 'negative')
+        neutral_count = sum(1 for r in user_reviews if r.sentiment and r.sentiment.lower() == 'neutral')
+        
+        # Calculate average confidence and aspect statistics
+        total_confidence = 0
+        confidence_count = 0
+        total_aspects = 0
+        positive_aspects = 0
+        negative_aspects = 0
+        
+        for review in user_reviews:
+            total_aspects += len(review.aspect_sentiments)
+            for aspect in review.aspect_sentiments:
+                if aspect.score is not None:
+                    total_confidence += aspect.score
+                    confidence_count += 1
+                
+                # Count aspect sentiments
+                if aspect.sentiment:
+                    sentiment_upper = aspect.sentiment.upper()
+                    if sentiment_upper == 'POSITIVE':
+                        positive_aspects += 1
+                    elif sentiment_upper == 'NEGATIVE':
+                        negative_aspects += 1
+        
+        avg_confidence = round((total_confidence / confidence_count * 100)) if confidence_count > 0 else 0
+        aspect_confidence = avg_confidence  # Same as overall confidence for aspects
+        
+        users_with_stats.append({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'created_at': None,  # User model doesn't have created_at field
+            'review_count': len(user_reviews),
+            'positive_count': positive_count,
+            'negative_count': negative_count,
+            'neutral_count': neutral_count,
+            'avg_confidence': avg_confidence,
+            'total_aspects': total_aspects,
+            'positive_aspects': positive_aspects,
+            'negative_aspects': negative_aspects,
+            'aspect_confidence': aspect_confidence
+        })
+    
+    return render_template('admin_user_management.html', users=users_with_stats)
+
+@admin_dashboard_bp.route('/admin/users/delete/<int:user_id>', methods=['POST'])
+@admin_login_required
+def delete_user(user_id):
+    from flask import flash, redirect, url_for
+    
+    user = User.query.get_or_404(user_id)
+    username = user.username
+    
+    try:
+        # Delete all reviews and associated data for this user
+        # The cascade delete should handle aspect_sentiments automatically
+        RawText.query.filter_by(user_id=user_id).delete()
+        
+        # Delete the user
+        db.session.delete(user)
+        db.session.commit()
+        
+        flash(f'User "{username}" and all their reviews have been successfully deleted.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting user: {str(e)}', 'error')
+    
+    return redirect(url_for('admin_dashboard.user_management'))
 
 @admin_dashboard_bp.route('/admin/analysis')
 @admin_login_required
@@ -144,12 +255,49 @@ def analysis_page():
     # Get filter and sort parameters from the request
     current_filter = request.args.get('sentiment', 'all').lower()
     current_sort = request.args.get('sort', 'confidence').lower()
+    min_confidence = request.args.get('min_confidence')
+    user_id_filter = request.args.get('user_id')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
 
     query = RawText.query.join(User).options(db.joinedload(RawText.aspect_sentiments)) # Eager load aspects
 
     # Apply sentiment filter
     if current_filter != 'all':
         query = query.filter(RawText.sentiment == current_filter.upper())
+    
+    # Apply confidence filter
+    if min_confidence:
+        try:
+            min_conf_val = float(min_confidence)
+            query = query.filter(RawText.score >= min_conf_val)
+        except ValueError:
+            pass
+    
+    # Apply user ID filter
+    if user_id_filter:
+        try:
+            user_id_val = int(user_id_filter)
+            query = query.filter(RawText.user_id == user_id_val)
+        except ValueError:
+            pass
+    
+    # Apply date filters
+    if start_date:
+        try:
+            from datetime import datetime
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(RawText.timestamp >= start_dt)
+        except ValueError:
+            pass
+    
+    if end_date:
+        try:
+            from datetime import datetime, timedelta
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(RawText.timestamp < end_dt)
+        except ValueError:
+            pass
 
     # Apply sorting
     if current_sort == 'confidence':
@@ -158,6 +306,8 @@ def analysis_page():
         query = query.order_by(RawText.sentiment.asc()) # Alphabetical for POSITIVE, NEGATIVE, NEUTRAL
     elif current_sort == 'userid':
         query = query.order_by(RawText.user_id.asc())
+    elif current_sort == 'date':
+        query = query.order_by(RawText.timestamp.desc())
     
     reviews_from_db = query.all()
 

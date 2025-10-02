@@ -1,0 +1,304 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}User Management | ReviewSense AI{% endblock %}
+{% block header_title %}User Management{% endblock %}
+
+{% block head_extra %}
+<style>
+    .user-stats-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        background-color: rgba(74, 144, 226, 0.1);
+        color: var(--accent-blue);
+        border: 1px solid rgba(74, 144, 226, 0.3);
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-view-stats {
+        padding: 6px 12px;
+        background-color: var(--accent-blue);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-view-stats:hover {
+        background-color: #5a8fd6;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+    }
+    
+    .btn-delete-user {
+        padding: 6px 12px;
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-delete-user:hover {
+        background-color: #c82333;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+    }
+    
+    /* User Stats Modal */
+    .user-stats-modal {
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+        display: none;
+    }
+    
+    .user-stats-modal-content {
+        background-color: var(--bg-light);
+        margin: 5% auto;
+        padding: 0;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        width: 90%;
+        max-width: 600px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+    
+    .user-stats-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 30px;
+        border-bottom: 1px solid var(--border-color);
+        background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, transparent 100%);
+    }
+    
+    .user-stats-modal-header h2 {
+        margin: 0;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .user-stats-modal-body {
+        padding: 30px;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-item {
+        background-color: var(--bg-dark);
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .stat-label {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-bottom: 5px;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .close-modal {
+        cursor: pointer;
+        font-size: 28px;
+        font-weight: bold;
+        color: var(--text-secondary);
+        transition: color 0.3s;
+    }
+    
+    .close-modal:hover {
+        color: var(--accent-blue);
+    }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="table-container card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0;">Registered Users</h2>
+        <div class="user-stats-badge">
+            <i class="fas fa-users"></i>
+            <span>{{ users|length }} Total Users</span>
+        </div>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>User ID</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Reviews</th>
+                <th style="text-align: center;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-user-circle" style="color: var(--accent-blue);"></i>
+                        <strong>{{ user.username }}</strong>
+                    </div>
+                </td>
+                <td>{{ user.email }}</td>
+                <td>
+                    <span class="user-stats-badge" style="background-color: rgba(40, 167, 69, 0.1); color: #28a745; border-color: rgba(40, 167, 69, 0.3);">
+                        <i class="fas fa-file-alt"></i>
+                        {{ user.review_count }} reviews
+                    </span>
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-view-stats" onclick="showUserStats({{ user['id'] }}, '{{ user['username'] }}', {{ user['review_count'] }}, {{ user['positive_count'] }}, {{ user['negative_count'] }}, {{ user['avg_confidence'] }}, {{ user['total_aspects'] }}, {{ user['positive_aspects'] }}, {{ user['negative_aspects'] }})">
+                            <i class="fas fa-chart-bar"></i> View Stats
+                        </button>
+                        <form method="POST" action="{{ url_for('admin_dashboard.delete_user', user_id=user.id) }}" 
+                              style="margin: 0;" 
+                              onsubmit="return confirm('Are you sure you want to delete user \'{{ user.username }}\'? This will also delete all their reviews and cannot be undone!');">
+                            <button type="submit" class="btn-delete-user">
+                                <i class="fas fa-trash-alt"></i> Delete
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 40px;">
+                    <i class="fas fa-users" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 10px;"></i>
+                    <p style="color: var(--text-secondary);">No users found.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- User Stats Modal -->
+<div id="userStatsModal" class="user-stats-modal">
+    <div class="user-stats-modal-content">
+        <div class="user-stats-modal-header">
+            <h2><i class="fas fa-user-chart"></i> <span id="modalUsername"></span>'s Statistics</h2>
+            <span class="close-modal" onclick="closeUserStatsModal()">&times;</span>
+        </div>
+        <div class="user-stats-modal-body">
+            <h3 style="color: var(--text-primary); margin-bottom: 15px; font-size: 1.1rem;">
+                <i class="fas fa-file-alt"></i> Review Statistics
+            </h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label"><i class="fas fa-file-alt"></i> Total Reviews</div>
+                    <div class="stat-value" id="statTotalReviews">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label"><i class="fas fa-chart-line"></i> Avg Confidence</div>
+                    <div class="stat-value" id="statAvgConfidence">0%</div>
+                </div>
+                <div class="stat-item" style="background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, transparent 100%);">
+                    <div class="stat-label"><i class="fas fa-smile"></i> Positive Reviews</div>
+                    <div class="stat-value" style="color: #28a745;" id="statPositive">0</div>
+                </div>
+                <div class="stat-item" style="background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, transparent 100%);">
+                    <div class="stat-label"><i class="fas fa-frown"></i> Negative Reviews</div>
+                    <div class="stat-value" style="color: #dc3545;" id="statNegative">0</div>
+                </div>
+            </div>
+            
+            <h3 style="color: var(--text-primary); margin: 25px 0 15px 0; font-size: 1.1rem;">
+                <i class="fas fa-tags"></i> Aspect Analysis
+            </h3>
+            <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+                <div class="stat-item" style="background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, transparent 100%);">
+                    <div class="stat-label"><i class="fas fa-tags"></i> Aspects Identified</div>
+                    <div class="stat-value" style="color: var(--accent-blue);" id="statTotalAspects">0</div>
+                </div>
+                <div class="stat-item" style="background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, transparent 100%);">
+                    <div class="stat-label"><i class="fas fa-thumbs-up"></i> Positive Aspects</div>
+                    <div class="stat-value" style="color: #28a745;" id="statPositiveAspects">0</div>
+                </div>
+                <div class="stat-item" style="background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, transparent 100%);">
+                    <div class="stat-label"><i class="fas fa-thumbs-down"></i> Negative Aspects</div>
+                    <div class="stat-value" style="color: #dc3545;" id="statNegativeAspects">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showUserStats(userId, username, totalReviews, positive, negative, avgConfidence, totalAspects, positiveAspects, negativeAspects) {
+        document.getElementById('modalUsername').textContent = username;
+        document.getElementById('statTotalReviews').textContent = totalReviews;
+        document.getElementById('statPositive').textContent = positive;
+        document.getElementById('statNegative').textContent = negative;
+        document.getElementById('statAvgConfidence').textContent = avgConfidence + '%';
+        
+        // Aspect statistics
+        document.getElementById('statTotalAspects').textContent = totalAspects;
+        document.getElementById('statPositiveAspects').textContent = positiveAspects;
+        document.getElementById('statNegativeAspects').textContent = negativeAspects;
+        
+        document.getElementById('userStatsModal').style.display = 'block';
+    }
+    
+    function closeUserStatsModal() {
+        document.getElementById('userStatsModal').style.display = 'none';
+    }
+    
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('userStatsModal');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+    
+    // Close modal on ESC key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeUserStatsModal();
+        }
+    });
+</script>
+{% endblock %}

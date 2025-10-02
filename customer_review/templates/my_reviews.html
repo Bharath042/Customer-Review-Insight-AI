@@ -1,0 +1,748 @@
+{% extends "base_user_dashboard.html" %}
+
+{% block title %}My Reviews | ReviewSense AI{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='my_reviews.css') }}">
+{% endblock %}
+{% block content %}
+    <header class="header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>My Reviews</h1>
+        <button id="addReviewBtn" class="btn-add-review" style="background: linear-gradient(135deg, var(--accent-blue) 0%, #5a8fd6 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.3s ease;">
+            <i class="fas fa-plus-circle"></i> Add Reviews
+        </button>
+    </header>
+
+    <!-- Modal for Add Reviews -->
+    <div id="addReviewModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 800px; width: 90%;">
+            <div class="modal-header">
+                <h2><i class="fas fa-plus-circle"></i> Add New Reviews</h2>
+                <span class="close" style="cursor: pointer; font-size: 28px; font-weight: bold; color: var(--text-secondary);">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- Step 1: Choose Upload Method -->
+                <div id="upload-method-selection" style="display: block;">
+                    <h3 style="text-align: center; color: var(--text-primary); margin-bottom: 30px;">How would you like to add reviews?</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <!-- CSV Upload Option -->
+                        <div class="upload-option-card" data-method="csv" style="background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, transparent 100%); border: 2px solid var(--border-color); border-radius: 12px; padding: 30px; text-align: center; cursor: pointer; transition: all 0.3s ease;">
+                            <div style="font-size: 3rem; color: var(--accent-blue); margin-bottom: 15px;">
+                                <i class="fas fa-file-csv"></i>
+                            </div>
+                            <h4 style="color: var(--text-primary); margin-bottom: 10px;">Upload CSV File</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px;">Upload multiple reviews at once from a CSV file</p>
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--accent-blue); font-size: 0.85rem;">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Best for bulk uploads</span>
+                            </div>
+                        </div>
+
+                        <!-- Text Input Option -->
+                        <div class="upload-option-card" data-method="text" style="background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, transparent 100%); border: 2px solid var(--border-color); border-radius: 12px; padding: 30px; text-align: center; cursor: pointer; transition: all 0.3s ease;">
+                            <div style="font-size: 3rem; color: var(--accent-blue); margin-bottom: 15px;">
+                                <i class="fas fa-keyboard"></i>
+                            </div>
+                            <h4 style="color: var(--text-primary); margin-bottom: 10px;">Type Review Text</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px;">Quickly analyze a single review by typing directly</p>
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--accent-blue); font-size: 0.85rem;">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Best for single reviews</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Upload Forms (Hidden by default) -->
+                <div id="upload-forms-container" style="display: none;">
+                    <button type="button" id="back-to-selection" style="background: none; border: none; color: var(--accent-blue); cursor: pointer; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; padding: 0;">
+                        <i class="fas fa-arrow-left"></i> Back to selection
+                    </button>
+                    
+                    <section class="input-section" style="display: grid; grid-template-columns: 1fr; gap: 0;">
+        <div class="card input-card">
+            <div class="card-header-icon">
+                <i class="fas fa-file-csv fa-2x" style="color: var(--accent-blue);"></i>
+            </div>
+            <h3><i class="fas fa-upload"></i> Upload Review Dataset (CSV)</h3>
+            <p class="card-description">Upload multiple reviews at once using a CSV file for bulk analysis</p>
+            <form method="POST" enctype="multipart/form-data" id="csv-upload-form">
+                <div class="form-group">
+                    <label for="csv-category"><i class="fas fa-tag"></i> Select Review Category <span class="required">*</span></label>
+                    <select name="category_id" id="csv-category">
+                        <option value="">-- Choose Category --</option>
+                        {% for category in categories %}
+                            <option value="{{ category['id'] }}" data-aspects='{{ category['aspects'] | tojson }}'>{{ category['name'] }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="help-text">{{ categories|length }} categories available</small>
+                    
+                    <!-- View Aspects Button -->
+                    <button type="button" id="csv-view-aspects-btn" class="view-aspects-btn" style="display: none; margin-top: 10px; padding: 6px 12px; background-color: transparent; color: var(--accent-blue); border: 1px solid var(--accent-blue); border-radius: 6px; cursor: pointer; font-size: 0.85rem; transition: all 0.3s ease;">
+                        <i class="fas fa-eye"></i> View Aspects & Keywords
+                    </button>
+                    
+                    <!-- Dynamic Aspect Info (Hidden by default) -->
+                    <div id="csv-aspect-info" class="aspect-info-box" style="display: none; margin-top: 15px; padding: 15px; background: linear-gradient(135deg, rgba(74, 144, 226, 0.05) 0%, transparent 100%); border: 1px solid var(--border-color); border-radius: 8px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-info-circle" style="color: var(--accent-blue);"></i>
+                                <strong style="color: var(--text-primary);">Aspects & Keywords for this category:</strong>
+                            </div>
+                            <button type="button" id="csv-close-aspects-btn" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.2rem; padding: 0; transition: color 0.3s;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div id="csv-aspect-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="csv-file-input"><i class="fas fa-file-upload"></i> Upload CSV File <span class="required">*</span></label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" name="file" id="csv-file-input" accept=".csv">
+                        <div class="file-upload-hint">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <span>Click to browse or drag & drop your CSV file here</span>
+                        </div>
+                    </div>
+                    <small class="help-text"><i class="fas fa-lightbulb"></i> Supported format: .csv (First column should contain reviews)</small>
+                </div>
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-rocket"></i> Upload & Analyze
+                </button>
+            </form>
+        </div>
+        <div class="card input-card">
+            <div class="card-header-icon">
+                <i class="fas fa-keyboard fa-2x" style="color: var(--accent-blue);"></i>
+            </div>
+            <h3><i class="fas fa-edit"></i> Or Paste Raw Review Text</h3>
+            <p class="card-description">Quickly analyze a single review by pasting the text directly</p>
+            <form method="POST" id="text-upload-form">
+                <div class="form-group">
+                    <label for="text-category"><i class="fas fa-tag"></i> Select Review Category <span class="required">*</span></label>
+                    <select name="category_id" id="text-category">
+                        <option value="">-- Choose Category --</option>
+                        {% for category in categories %}
+                            <option value="{{ category['id'] }}" data-aspects='{{ category['aspects'] | tojson }}'>{{ category['name'] }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="help-text">{{ categories|length }} categories available</small>
+                    
+                    <!-- View Aspects Button -->
+                    <button type="button" id="text-view-aspects-btn" class="view-aspects-btn" style="display: none; margin-top: 10px; padding: 6px 12px; background-color: transparent; color: var(--accent-blue); border: 1px solid var(--accent-blue); border-radius: 6px; cursor: pointer; font-size: 0.85rem; transition: all 0.3s ease;">
+                        <i class="fas fa-eye"></i> View Aspects & Keywords
+                    </button>
+                    
+                    <!-- Dynamic Aspect Info (Hidden by default) -->
+                    <div id="text-aspect-info" class="aspect-info-box" style="display: none; margin-top: 15px; padding: 15px; background: linear-gradient(135deg, rgba(74, 144, 226, 0.05) 0%, transparent 100%); border: 1px solid var(--border-color); border-radius: 8px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-info-circle" style="color: var(--accent-blue);"></i>
+                                <strong style="color: var(--text-primary);">Aspects & Keywords for this category:</strong>
+                            </div>
+                            <button type="button" id="text-close-aspects-btn" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.2rem; padding: 0; transition: color 0.3s;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div id="text-aspect-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="raw-text-input"><i class="fas fa-comment-dots"></i> Review Text <span class="required">*</span></label>
+                    <textarea name="raw_text" id="raw-text-input" placeholder="Paste your review text here... (e.g., 'The product quality is excellent but delivery was slow')" rows="6"></textarea>
+                    <small class="help-text"><i class="fas fa-lightbulb"></i> Tip: Longer reviews provide more detailed sentiment insights</small>
+                </div>
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-rocket"></i> Save & Analyze
+                </button>
+            </form>
+        </div>
+    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="table-container card">
+        <h2>My Reviews & Sentiment</h2>
+        
+        <!-- Filter Section -->
+        <div class="filter-section" style="background-color: var(--bg-light); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h4 style="color: var(--text-primary); margin-bottom: 15px;">
+                <i class="fas fa-filter"></i> Filter & Sort Reviews
+            </h4>
+            <form method="GET" action="{{ url_for('my_reviews') }}">
+                <div class="row g-3">
+                    <div class="col-md-2">
+                        <label for="sentiment_filter" class="form-label" style="color: var(--text-primary);">Sentiment</label>
+                        <select class="form-control" id="sentiment_filter" name="sentiment" 
+                                style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+                            <option value="">All</option>
+                            <option value="POSITIVE" {% if request.args.get('sentiment') == 'POSITIVE' %}selected{% endif %}>Positive</option>
+                            <option value="NEGATIVE" {% if request.args.get('sentiment') == 'NEGATIVE' %}selected{% endif %}>Negative</option>
+                            <option value="NEUTRAL" {% if request.args.get('sentiment') == 'NEUTRAL' %}selected{% endif %}>Neutral</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="min_confidence" class="form-label" style="color: var(--text-primary);">Min Confidence</label>
+                        <input type="number" class="form-control" id="min_confidence" name="min_confidence" 
+                               min="0" max="1" step="0.1" value="{{ request.args.get('min_confidence', '') }}"
+                               placeholder="0.0 - 1.0"
+                               style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="start_date" class="form-label" style="color: var(--text-primary);">Start Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" 
+                               value="{{ request.args.get('start_date', '') }}"
+                               style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; color-scheme: dark;">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="end_date" class="form-label" style="color: var(--text-primary);">End Date</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" 
+                               value="{{ request.args.get('end_date', '') }}"
+                               style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; color-scheme: dark;">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="sort" class="form-label" style="color: var(--text-primary);">Sort By</label>
+                        <select class="form-control" id="sort" name="sort" 
+                                style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+                            <option value="date" {% if request.args.get('sort') == 'date' %}selected{% endif %}>Date</option>
+                            <option value="confidence" {% if request.args.get('sort') == 'confidence' %}selected{% endif %}>Confidence</option>
+                            <option value="sentiment" {% if request.args.get('sort') == 'sentiment' %}selected{% endif %}>Sentiment</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn" style="padding: 8px 20px; background-color: var(--accent-blue); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                            <i class="fas fa-filter"></i> Apply Filters
+                        </button>
+                        <a href="{{ url_for('my_reviews') }}" class="btn" style="padding: 8px 20px; background-color: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; text-decoration: none;">
+                            <i class="fas fa-redo"></i> Reset
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Review</th>
+                    <th>Sentiment</th>
+                    <th>Confidence Score</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for text in raw_texts %}
+                <tr>
+                    <td>{{ text.highlighted_content | safe }}</td>
+                    <td>
+                        {% set sentiment = text.sentiment.strip().upper() if text.sentiment else "NEUTRAL" %}
+                        {% if sentiment == "POSITIVE" %}
+                            <span class="sentiment-label positive">Positive</span>
+                        {% elif sentiment == "NEGATIVE" %}
+                            <span class="sentiment-label negative">Negative</span>
+                        {% else %}
+                            <span class="sentiment-label neutral">Neutral</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if text.score is not none %}
+                            {{ "%.4f"|format(text.score) }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                    <td class="actions">
+                        <form action="{{ url_for('delete_raw_text', text_id=text.id) }}" 
+                              method="POST" 
+                              onsubmit="return confirm('Are you sure?');">
+                            <button type="submit" class="btn-delete">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not raw_texts %}
+                <tr>
+                    <td colspan="4" style="text-align:center;">No reviews submitted yet.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </section>    
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <style>
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background-color: var(--bg-light);
+            margin: 3% auto;
+            padding: 0;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            border-bottom: 1px solid var(--border-color);
+            background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, transparent 100%);
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-header h2 i {
+            color: var(--accent-blue);
+        }
+
+        .modal-body {
+            padding: 30px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: var(--accent-blue);
+            transform: rotate(90deg);
+            transition: all 0.3s ease;
+        }
+
+        .btn-add-review:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
+        }
+
+        /* Adjust input section for modal */
+        .modal .input-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 0;
+        }
+
+        @media (max-width: 768px) {
+            .modal .input-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <script>
+        // Toast notification function
+        function showToast(message, type = 'error') {
+            // Remove any existing toasts first
+            const existingToasts = document.querySelectorAll('.custom-toast');
+            existingToasts.forEach(toast => toast.remove());
+            
+            const toastContainer = document.createElement('div');
+            toastContainer.className = `custom-toast ${type}`;
+            toastContainer.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background-color: ${type === 'error' ? '#dc3545' : '#28a745'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-family: 'Poppins', sans-serif;
+                max-width: 400px;
+                opacity: 0;
+                transform: translateX(100%);
+                transition: all 0.3s ease;
+            `;
+            
+            const icon = type === 'error' ? '⚠️' : '✅';
+            toastContainer.innerHTML = `<span style="font-size: 1.2rem;">${icon}</span><span>${message}</span>`;
+            
+            document.body.appendChild(toastContainer);
+            
+            // Trigger animation after a small delay
+            setTimeout(() => {
+                toastContainer.style.opacity = '1';
+                toastContainer.style.transform = 'translateX(0)';
+            }, 10);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toastContainer.style.opacity = '0';
+                toastContainer.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (toastContainer.parentNode) {
+                        toastContainer.parentNode.removeChild(toastContainer);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const myReviewsLink = document.querySelector('.sidebar-nav ul li a[href="/my_reviews"]');
+            if (myReviewsLink) {
+                myReviewsLink.classList.add('active');
+            }
+
+            // Modal functionality
+            const modal = document.getElementById('addReviewModal');
+            const btn = document.getElementById('addReviewBtn');
+            const span = document.getElementsByClassName('close')[0];
+            const uploadMethodSelection = document.getElementById('upload-method-selection');
+            const uploadFormsContainer = document.getElementById('upload-forms-container');
+            const backToSelectionBtn = document.getElementById('back-to-selection');
+            const csvCard = document.querySelector('.card.input-card:first-of-type');
+            const textCard = document.querySelector('.card.input-card:last-of-type');
+
+            btn.onclick = function() {
+                modal.style.display = 'block';
+                // Reset to step 1
+                uploadMethodSelection.style.display = 'block';
+                uploadFormsContainer.style.display = 'none';
+            }
+
+            span.onclick = function() {
+                modal.style.display = 'none';
+                // Reset to step 1
+                uploadMethodSelection.style.display = 'block';
+                uploadFormsContainer.style.display = 'none';
+            }
+
+            window.onclick = function(event) {
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                    // Reset to step 1
+                    uploadMethodSelection.style.display = 'block';
+                    uploadFormsContainer.style.display = 'none';
+                }
+            }
+
+            // Handle upload method selection
+            const uploadOptionCards = document.querySelectorAll('.upload-option-card');
+            uploadOptionCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    const method = this.getAttribute('data-method');
+                    
+                    // Hide selection, show forms
+                    uploadMethodSelection.style.display = 'none';
+                    uploadFormsContainer.style.display = 'block';
+                    
+                    // Show only the selected form
+                    if (method === 'csv') {
+                        csvCard.style.display = 'block';
+                        textCard.style.display = 'none';
+                    } else {
+                        csvCard.style.display = 'none';
+                        textCard.style.display = 'block';
+                    }
+                });
+            });
+
+            // Back to selection button
+            if (backToSelectionBtn) {
+                backToSelectionBtn.addEventListener('click', function() {
+                    uploadMethodSelection.style.display = 'block';
+                    uploadFormsContainer.style.display = 'none';
+                });
+            }
+
+            // Close modal on ESC key
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape' && modal.style.display === 'block') {
+                    modal.style.display = 'none';
+                }
+            });
+
+            // Dynamic aspect display for CSV category
+            const csvCategorySelect = document.getElementById('csv-category');
+            const csvViewBtn = document.getElementById('csv-view-aspects-btn');
+            const csvAspectInfo = document.getElementById('csv-aspect-info');
+            const csvAspectList = document.getElementById('csv-aspect-list');
+            const csvCloseBtn = document.getElementById('csv-close-aspects-btn');
+            let csvCurrentAspects = null;
+
+            if (csvCategorySelect) {
+                csvCategorySelect.addEventListener('change', function() {
+                    const selectedOption = this.options[this.selectedIndex];
+                    const aspectsData = selectedOption.getAttribute('data-aspects');
+                    
+                    // Hide info box and reset
+                    csvAspectInfo.style.display = 'none';
+                    
+                    if (aspectsData && aspectsData !== 'null') {
+                        try {
+                            const aspects = JSON.parse(aspectsData);
+                            if (aspects && aspects.length > 0) {
+                                csvCurrentAspects = aspects;
+                                csvViewBtn.style.display = 'block';
+                            } else {
+                                csvViewBtn.style.display = 'none';
+                                csvCurrentAspects = null;
+                            }
+                        } catch (e) {
+                            csvViewBtn.style.display = 'none';
+                            csvCurrentAspects = null;
+                        }
+                    } else {
+                        csvViewBtn.style.display = 'none';
+                        csvCurrentAspects = null;
+                    }
+                });
+
+                // View Aspects button click
+                if (csvViewBtn) {
+                    csvViewBtn.addEventListener('click', function() {
+                        if (csvCurrentAspects) {
+                            csvAspectList.innerHTML = '';
+                            csvCurrentAspects.forEach(aspect => {
+                                const aspectCard = document.createElement('div');
+                                aspectCard.style.cssText = 'background-color: var(--bg-dark); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);';
+                                
+                                const aspectName = document.createElement('div');
+                                aspectName.style.cssText = 'font-weight: 600; color: var(--accent-blue); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;';
+                                aspectName.innerHTML = `<i class="fas fa-tag"></i> ${aspect.name}`;
+                                
+                                const keywordContainer = document.createElement('div');
+                                keywordContainer.style.cssText = 'display: flex; flex-wrap: wrap; gap: 6px;';
+                                
+                                if (aspect.keywords && aspect.keywords.length > 0) {
+                                    aspect.keywords.forEach(keyword => {
+                                        const keywordBadge = document.createElement('span');
+                                        keywordBadge.style.cssText = 'background-color: rgba(74, 144, 226, 0.2); color: var(--text-primary); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;';
+                                        keywordBadge.textContent = keyword;
+                                        keywordContainer.appendChild(keywordBadge);
+                                    });
+                                } else {
+                                    keywordContainer.innerHTML = '<span style="color: var(--text-secondary); font-size: 0.85rem; font-style: italic;">No keywords defined</span>';
+                                }
+                                
+                                aspectCard.appendChild(aspectName);
+                                aspectCard.appendChild(keywordContainer);
+                                csvAspectList.appendChild(aspectCard);
+                            });
+                            csvAspectInfo.style.display = 'block';
+                            csvViewBtn.style.display = 'none';
+                        }
+                    });
+                }
+
+                // Close button click
+                if (csvCloseBtn) {
+                    csvCloseBtn.addEventListener('click', function() {
+                        csvAspectInfo.style.display = 'none';
+                        csvViewBtn.style.display = 'block';
+                    });
+                }
+            }
+
+            // Dynamic aspect display for text category
+            const textCategorySelect = document.getElementById('text-category');
+            const textViewBtn = document.getElementById('text-view-aspects-btn');
+            const textAspectInfo = document.getElementById('text-aspect-info');
+            const textAspectList = document.getElementById('text-aspect-list');
+            const textCloseBtn = document.getElementById('text-close-aspects-btn');
+            let textCurrentAspects = null;
+
+            if (textCategorySelect) {
+                textCategorySelect.addEventListener('change', function() {
+                    const selectedOption = this.options[this.selectedIndex];
+                    const aspectsData = selectedOption.getAttribute('data-aspects');
+                    
+                    // Hide info box and reset
+                    textAspectInfo.style.display = 'none';
+                    
+                    if (aspectsData && aspectsData !== 'null') {
+                        try {
+                            const aspects = JSON.parse(aspectsData);
+                            if (aspects && aspects.length > 0) {
+                                textCurrentAspects = aspects;
+                                textViewBtn.style.display = 'block';
+                            } else {
+                                textViewBtn.style.display = 'none';
+                                textCurrentAspects = null;
+                            }
+                        } catch (e) {
+                            textViewBtn.style.display = 'none';
+                            textCurrentAspects = null;
+                        }
+                    } else {
+                        textViewBtn.style.display = 'none';
+                        textCurrentAspects = null;
+                    }
+                });
+
+                // View Aspects button click
+                if (textViewBtn) {
+                    textViewBtn.addEventListener('click', function() {
+                        if (textCurrentAspects) {
+                            textAspectList.innerHTML = '';
+                            textCurrentAspects.forEach(aspect => {
+                                const aspectCard = document.createElement('div');
+                                aspectCard.style.cssText = 'background-color: var(--bg-dark); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);';
+                                
+                                const aspectName = document.createElement('div');
+                                aspectName.style.cssText = 'font-weight: 600; color: var(--accent-blue); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;';
+                                aspectName.innerHTML = `<i class="fas fa-tag"></i> ${aspect.name}`;
+                                
+                                const keywordContainer = document.createElement('div');
+                                keywordContainer.style.cssText = 'display: flex; flex-wrap: wrap; gap: 6px;';
+                                
+                                if (aspect.keywords && aspect.keywords.length > 0) {
+                                    aspect.keywords.forEach(keyword => {
+                                        const keywordBadge = document.createElement('span');
+                                        keywordBadge.style.cssText = 'background-color: rgba(74, 144, 226, 0.2); color: var(--text-primary); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;';
+                                        keywordBadge.textContent = keyword;
+                                        keywordContainer.appendChild(keywordBadge);
+                                    });
+                                } else {
+                                    keywordContainer.innerHTML = '<span style="color: var(--text-secondary); font-size: 0.85rem; font-style: italic;">No keywords defined</span>';
+                                }
+                                
+                                aspectCard.appendChild(aspectName);
+                                aspectCard.appendChild(keywordContainer);
+                                textAspectList.appendChild(aspectCard);
+                            });
+                            textAspectInfo.style.display = 'block';
+                            textViewBtn.style.display = 'none';
+                        }
+                    });
+                }
+
+                // Close button click
+                if (textCloseBtn) {
+                    textCloseBtn.addEventListener('click', function() {
+                        textAspectInfo.style.display = 'none';
+                        textViewBtn.style.display = 'block';
+                    });
+                }
+            }
+
+            // Custom validation for CSV upload form
+            const csvForm = document.getElementById('csv-upload-form');
+            if (csvForm) {
+                csvForm.addEventListener('submit', function(e) {
+                    const category = document.getElementById('csv-category').value;
+                    const file = document.getElementById('csv-file-input').files[0];
+                    
+                    if (!category) {
+                        e.preventDefault();
+                        showToast('Please select a review category before uploading.', 'error');
+                        return false;
+                    }
+                    
+                    if (!file) {
+                        e.preventDefault();
+                        showToast('Please select a CSV file to upload.', 'error');
+                        return false;
+                    }
+                    
+                    // If validation passes, allow form submission
+                    return true;
+                });
+            }
+
+            // Custom validation for text upload form
+            const textForm = document.getElementById('text-upload-form');
+            if (textForm) {
+                textForm.addEventListener('submit', function(e) {
+                    const category = document.getElementById('text-category').value;
+                    const text = document.getElementById('raw-text-input').value.trim();
+                    
+                    if (!category) {
+                        e.preventDefault();
+                        showToast('Please select a review category before submitting.', 'error');
+                        return false;
+                    }
+                    
+                    if (!text) {
+                        e.preventDefault();
+                        showToast('Please enter review text before submitting.', 'error');
+                        return false;
+                    }
+                    
+                    if (text.length < 10) {
+                        e.preventDefault();
+                        showToast('Review text should be at least 10 characters long.', 'error');
+                        return false;
+                    }
+                    
+                    // If validation passes, allow form submission
+                    return true;
+                });
+            }
+        });
+    </script>
+    <style>
+        .view-aspects-btn:hover {
+            background-color: var(--accent-blue) !important;
+            color: white !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+        }
+        
+        #csv-close-aspects-btn:hover,
+        #text-close-aspects-btn:hover {
+            color: var(--accent-blue) !important;
+        }
+
+        .upload-option-card:hover {
+            border-color: var(--accent-blue) !important;
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(74, 144, 226, 0.3);
+        }
+
+        #back-to-selection:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            #upload-method-selection > div {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    </style>
+{% endblock %}

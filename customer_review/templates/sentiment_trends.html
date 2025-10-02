@@ -1,0 +1,253 @@
+{% extends "base_user_dashboard.html" %}
+
+{% block title %}Sentiment Trends - Customer Review Insight AI{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: var(--text-primary); font-family: 'Poppins', sans-serif;">
+            <i class="fas fa-chart-line"></i> Sentiment Trends Over Time
+        </h2>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="card mb-4" style="background-color: var(--bg-light); border: 1px solid var(--border-color);">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('analysis.sentiment_trends_page') }}" class="row g-3">
+                <div class="col-md-5">
+                    <label for="start_date" class="form-label" style="color: var(--text-primary); font-weight: 500;">Start Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" 
+                           value="{{ start_date if start_date else '' }}"
+                           style="background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); color-scheme: dark;">
+                </div>
+                <div class="col-md-5">
+                    <label for="end_date" class="form-label" style="color: var(--text-primary); font-weight: 500;">End Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" 
+                           value="{{ end_date if end_date else '' }}"
+                           style="background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); color-scheme: dark;">
+                </div>
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn" style="background-color: var(--accent-blue); color: white; border: none; padding: 8px 16px; border-radius: 6px; flex: 1;">
+                        <i class="fas fa-filter"></i> Apply
+                    </button>
+                    <a href="{{ url_for('analysis.sentiment_trends_page') }}" class="btn" style="background-color: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 6px; text-decoration: none; flex: 1; text-align: center;">
+                        <i class="fas fa-redo"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Trends Chart -->
+    {% if trends_data and trends_data.dates %}
+    <div class="card" style="background-color: var(--bg-light); border: 1px solid var(--border-color);">
+        <div class="card-body">
+            <canvas id="trendsChart" style="max-height: 500px;"></canvas>
+        </div>
+    </div>
+
+    <!-- Legend Info -->
+    <div class="card mt-4" style="background-color: var(--bg-light); border: 1px solid var(--border-color);">
+        <div class="card-body">
+            <h5 style="color: var(--text-primary); margin-bottom: 15px;">
+                <i class="fas fa-info-circle"></i> Understanding the Chart
+            </h5>
+            <p style="color: var(--text-secondary);">
+                <strong>Sentiment Score Range:</strong> -1.0 (Very Negative) to +1.0 (Very Positive)<br>
+                <strong>Zero Line:</strong> Represents neutral sentiment<br>
+                <strong>Trend Lines:</strong> Each line represents a different aspect tracked over time
+            </p>
+        </div>
+    </div>
+    {% else %}
+    <div class="card" style="background-color: var(--bg-light); border: 1px solid var(--border-color);">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-chart-line fa-3x mb-3" style="color: var(--text-secondary);"></i>
+            <h5 style="color: var(--text-primary);">No Trend Data Available</h5>
+            <p style="color: var(--text-secondary);">
+                {% if start_date or end_date %}
+                No reviews found in the selected date range. Try adjusting your filters.
+                {% else %}
+                Start analyzing reviews to see sentiment trends over time.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+{% if trends_data and trends_data.dates %}
+// Prepare data for Chart.js
+const trendsData = {{ trends_data | tojson }};
+
+// Generate colors for each aspect
+const colors = [
+    '#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6',
+    '#1abc9c', '#e67e22', '#34495e', '#16a085', '#c0392b'
+];
+
+// Create datasets for each aspect
+const datasets = [];
+let colorIndex = 0;
+
+for (const [aspect, values] of Object.entries(trendsData.aspects)) {
+    const color = colors[colorIndex % colors.length];
+    datasets.push({
+        label: aspect,
+        data: values,
+        borderColor: color,
+        backgroundColor: color + '20',
+        borderWidth: 2,
+        tension: 0.4,
+        fill: false,
+        pointRadius: 4,
+        pointHoverRadius: 6
+    });
+    colorIndex++;
+}
+
+// Create the chart
+const ctx = document.getElementById('trendsChart').getContext('2d');
+const trendsChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: trendsData.dates,
+        datasets: datasets
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Aspect Sentiment Trends Over Time',
+                color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
+                font: {
+                    size: 18,
+                    family: 'Poppins'
+                }
+            },
+            legend: {
+                display: true,
+                position: 'bottom',
+                labels: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
+                    font: {
+                        family: 'Poppins'
+                    },
+                    padding: 15,
+                    usePointStyle: true
+                }
+            },
+            tooltip: {
+                mode: 'nearest',
+                intersect: true,
+                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                titleFont: {
+                    family: 'Poppins',
+                    size: 14,
+                    weight: 'bold'
+                },
+                bodyFont: {
+                    family: 'Poppins',
+                    size: 13
+                },
+                padding: 12,
+                displayColors: true,
+                filter: function(tooltipItem) {
+                    // Only show tooltip if the value is not zero (aspect has data on this date)
+                    return tooltipItem.parsed.y !== 0;
+                },
+                callbacks: {
+                    title: function(context) {
+                        return 'Date: ' + context[0].label;
+                    },
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        let value = context.parsed.y.toFixed(2);
+                        let sentiment = '';
+                        
+                        if (context.parsed.y > 0.3) {
+                            sentiment = '😊 Positive';
+                        } else if (context.parsed.y < -0.3) {
+                            sentiment = '😞 Negative';
+                        } else if (context.parsed.y !== 0) {
+                            sentiment = '😐 Neutral';
+                        }
+                        
+                        return label + ': ' + value + ' ' + sentiment;
+                    },
+                    afterBody: function(context) {
+                        if (context.length > 0) {
+                            let value = context[0].parsed.y;
+                            if (value > 0) {
+                                return '\n💡 Customers feel positive about this aspect';
+                            } else if (value < 0) {
+                                return '\n⚠️ Customers have concerns about this aspect';
+                            }
+                        }
+                        return '';
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                display: true,
+                title: {
+                    display: true,
+                    text: 'Date',
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
+                    font: {
+                        family: 'Poppins',
+                        size: 14
+                    }
+                },
+                ticks: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary'),
+                    font: {
+                        family: 'Poppins'
+                    }
+                },
+                grid: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--border-color')
+                }
+            },
+            y: {
+                display: true,
+                title: {
+                    display: true,
+                    text: 'Sentiment Score',
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
+                    font: {
+                        family: 'Poppins',
+                        size: 14
+                    }
+                },
+                ticks: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary'),
+                    font: {
+                        family: 'Poppins'
+                    },
+                    callback: function(value) {
+                        return value.toFixed(1);
+                    }
+                },
+                grid: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--border-color')
+                },
+                min: -1,
+                max: 1
+            }
+        },
+        interaction: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

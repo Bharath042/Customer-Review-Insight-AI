@@ -162,7 +162,7 @@ def home():
 
     user = User.query.get(session["user_id"])
 
-    raw_texts = RawText.query.filter_by(user_id=user.id).order_by(RawText.id.desc()).all()
+    raw_texts = RawText.query.filter_by(user_id=user.id).options(db.joinedload(RawText.aspect_sentiments)).order_by(RawText.id.desc()).all()
 
     stats = {
         "total_reviews": len(raw_texts),
@@ -177,6 +177,32 @@ def home():
     stats["negative_percentage"] = pct(stats["negative"])
     stats["neutral_percentage"] = pct(stats["neutral"])
 
+    # Calculate aspect-based summary statistics
+    total_aspects = 0
+    positive_count = 0
+    negative_count = 0
+    neutral_count = 0
+    total_confidence = 0
+    confidence_count = 0
+    
+    for text in raw_texts:
+        total_aspects += len(text.aspect_sentiments)
+        for aspect in text.aspect_sentiments:
+            if aspect.sentiment:
+                sentiment_upper = aspect.sentiment.upper()
+                if sentiment_upper == 'POSITIVE':
+                    positive_count += 1
+                elif sentiment_upper == 'NEGATIVE':
+                    negative_count += 1
+                else:
+                    neutral_count += 1
+                
+                if aspect.score is not None:
+                    total_confidence += aspect.score
+                    confidence_count += 1
+    
+    avg_confidence = round((total_confidence / confidence_count * 100)) if confidence_count > 0 else 0
+
     return render_template(
         "home.html",
         username=user.username,
@@ -187,6 +213,11 @@ def home():
             "neutral": stats["neutral"],
         },
         recent_reviews=raw_texts[:5],
+        total_aspects=total_aspects,
+        positive_count=positive_count,
+        negative_count=negative_count,
+        neutral_count=neutral_count,
+        avg_confidence=avg_confidence,
         flashed_messages=get_flashed_messages(with_categories=True)
     )
 
@@ -197,13 +228,31 @@ def my_reviews():
 
     user = User.query.get(session["user_id"])
     
-    # Get all categories for the dropdown
+    # Get all categories for the dropdown with their aspects
     from models import Category
-    categories = Category.query.order_by(Category.name).all()
+    categories_raw = Category.query.options(db.joinedload(Category.aspects)).order_by(Category.name).all()
+    
+    # Convert to a format that can be JSON serialized with keywords
+    categories = []
+    for cat in categories_raw:
+        aspects_with_keywords = []
+        for asp in cat.aspects:
+            keywords = [kw.keyword for kw in asp.keywords]
+            aspects_with_keywords.append({
+                'id': asp.id,
+                'name': asp.name,
+                'keywords': keywords
+            })
+        category_dict = {
+            'id': cat.id,
+            'name': cat.name,
+            'aspects': aspects_with_keywords
+        }
+        categories.append(category_dict)
+    
     logger.info(f"DEBUG: Found {len(categories)} categories for dropdown")
     for cat in categories:
-        logger.info(f"  - Category: {cat.name} (ID: {cat.id})")
-    logger.info(f"DEBUG: categories variable type: {type(categories)}, value: {categories}")
+        logger.info(f"  - Category: {cat['name']} (ID: {cat['id']}) with {len(cat['aspects'])} aspects")
 
     # Ensure NLPProcessor is initialized if it somehow wasn't (e.g. during specific requests)
     # This acts as a safeguard. The main initialization is in the app context startup.
@@ -336,7 +385,51 @@ def my_reviews():
                 flash("Please enter some text before saving.", "danger")
         return redirect(url_for("my_reviews"))
 
-    raw_texts = RawText.query.filter_by(user_id=user.id).options(db.joinedload(RawText.aspect_sentiments)).order_by(RawText.id.desc()).all()
+    # Build query with filters
+    query = RawText.query.filter_by(user_id=user.id).options(db.joinedload(RawText.aspect_sentiments))
+    
+    # Apply filters from request args
+    sentiment_filter = request.args.get('sentiment')
+    min_confidence = request.args.get('min_confidence')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    sort_by = request.args.get('sort', 'date')
+    
+    if sentiment_filter:
+        query = query.filter(RawText.sentiment == sentiment_filter)
+    
+    if min_confidence:
+        try:
+            min_conf_val = float(min_confidence)
+            query = query.filter(RawText.score >= min_conf_val)
+        except ValueError:
+            pass
+    
+    if start_date:
+        try:
+            from datetime import datetime
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(RawText.timestamp >= start_dt)
+        except ValueError:
+            pass
+    
+    if end_date:
+        try:
+            from datetime import datetime, timedelta
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(RawText.timestamp < end_dt)
+        except ValueError:
+            pass
+    
+    # Apply sorting
+    if sort_by == 'confidence':
+        query = query.order_by(RawText.score.desc())
+    elif sort_by == 'sentiment':
+        query = query.order_by(RawText.sentiment.asc())
+    else:  # date (default)
+        query = query.order_by(RawText.timestamp.desc())
+    
+    raw_texts = query.all()
 
     for text in raw_texts:
         logger.info(f"\n--- Review ID: {text.id} ---")
@@ -348,7 +441,45 @@ def my_reviews():
 
         text.highlighted_content = _highlight_aspects_in_text(text.content, text.aspect_sentiments)
 
-    return render_template("my_reviews.html", raw_texts=raw_texts, categories=categories)
+    # Calculate summary statistics
+    total_aspects = 0
+    positive_count = 0
+    negative_count = 0
+    neutral_count = 0
+    total_confidence = 0
+    confidence_count = 0
+    
+    for text in raw_texts:
+        # Count aspects
+        total_aspects += len(text.aspect_sentiments)
+        
+        # Count sentiments from aspects
+        for aspect in text.aspect_sentiments:
+            if aspect.sentiment:
+                sentiment_upper = aspect.sentiment.upper()
+                if sentiment_upper == 'POSITIVE':
+                    positive_count += 1
+                elif sentiment_upper == 'NEGATIVE':
+                    negative_count += 1
+                else:
+                    neutral_count += 1
+                
+                # Sum confidence scores
+                if aspect.score is not None:
+                    total_confidence += aspect.score
+                    confidence_count += 1
+    
+    # Calculate average confidence
+    avg_confidence = round((total_confidence / confidence_count * 100)) if confidence_count > 0 else 0
+
+    return render_template("my_reviews.html", 
+                         raw_texts=raw_texts, 
+                         categories=categories,
+                         total_aspects=total_aspects,
+                         positive_count=positive_count,
+                         negative_count=negative_count,
+                         neutral_count=neutral_count,
+                         avg_confidence=avg_confidence)
 
 
 @app.route('/delete_raw_text/<int:text_id>', methods=['POST'])

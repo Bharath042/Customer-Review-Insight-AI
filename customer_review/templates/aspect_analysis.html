@@ -71,15 +71,55 @@
         }
         :root {
             --chart-grid-color: rgba(108, 117, 125, 0.2); 
-            --chart-zeroline-color: var(--text-color, #ffffff); 
             --chart-tick-color: var(--text-color, #ffffff); 
         }
     </style>
 {% endblock %}
 
 {% block content %}
-    <div class="content-header">
+    <div class="content-header d-flex justify-content-between align-items-center">
         <h1>Aspect-Based Sentiment Analysis</h1>
+        <div>
+            <a href="{{ url_for('analysis.export_csv', start_date=start_date, end_date=end_date) }}" class="btn btn-sm" style="background-color: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; margin-right: 10px;">
+                <i class="fas fa-file-csv"></i> Export CSV
+            </a>
+            <button onclick="showPdfExportModal()" class="btn btn-sm" style="background-color: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 6px;">
+                <i class="fas fa-file-pdf"></i> Export PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="card mb-4" style="background-color: var(--bg-light); border: 1px solid var(--border-color); margin: 20px;">
+        <div class="card-body">
+            <h4 style="color: var(--text-primary); margin-bottom: 15px;">
+                <i class="fas fa-filter"></i> Filter by Date Range
+            </h4>
+            <form method="GET" action="{{ url_for('analysis.aspect_analysis_page') }}">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label for="start_date" class="form-label" style="color: var(--text-primary);">Start Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" 
+                               value="{{ start_date if start_date else '' }}"
+                               style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; color-scheme: dark;">
+                    </div>
+                    <div class="col-md-5">
+                        <label for="end_date" class="form-label" style="color: var(--text-primary);">End Date</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" 
+                               value="{{ end_date if end_date else '' }}"
+                               style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; color-scheme: dark;">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn" style="padding: 8px 20px; background-color: var(--accent-blue); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                            <i class="fas fa-filter"></i> Apply Filters
+                        </button>
+                        <a href="{{ url_for('analysis.aspect_analysis_page') }}" class="btn" style="padding: 8px 20px; background-color: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; text-decoration: none;">
+                            <i class="fas fa-redo"></i> Reset
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 
     {# Combined check for any data to display the chart and tables #}
@@ -188,6 +228,11 @@
             const combinedAspectSummary = [...categorizedAspectSummary, ...uncategorizedAspectSummary];
 
             const chartCanvas = document.getElementById('aspectSentimentScoresChart');
+            
+            console.log('Categorized:', categorizedAspectSummary);
+            console.log('Uncategorized:', uncategorizedAspectSummary);
+            console.log('Combined:', combinedAspectSummary);
+            console.log('Chart Canvas:', chartCanvas);
 
             if (combinedAspectSummary.length > 0 && chartCanvas) {
                 const labels = combinedAspectSummary.map(data => data.aspect.replace('_', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '));
@@ -292,4 +337,7 @@
             }
         });
     </script>
+    
+    <!-- Include PDF Export Modal -->
+    {% include '_pdf_export_modal.html' %}
 {% endblock %}

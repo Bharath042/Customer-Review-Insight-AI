@@ -1,0 +1,248 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Admin Dashboard | ReviewSense AI{% endblock %}
+{% block header_title %}Dashboard{% endblock %} {# Set header title for this page #}
+
+{% block head_extra %}
+<style>
+    /* Match user dashboard styling exactly */
+    .header h1 {
+        font-size: 2.5rem !important;
+        font-weight: 700 !important;
+        margin: 0 0 2rem 0 !important;
+        font-family: 'Poppins', sans-serif !important;
+    }
+    
+    .stat-cards {
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .stat-cards .card h3 {
+        font-size: 0.95rem;
+        font-weight: 500;
+        margin-bottom: 1rem;
+        color: var(--text-secondary);
+        text-transform: none;
+        letter-spacing: 0;
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0;
+        color: var(--text-primary);
+    }
+    
+    .table-container h2,
+    .card h2 {
+        font-size: 1.75rem !important;
+        font-weight: 700 !important;
+        margin-bottom: 1.5rem !important;
+        font-family: 'Poppins', sans-serif !important;
+        color: var(--text-primary) !important;
+    }
+    
+    table {
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    table th {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: none;
+        letter-spacing: 0;
+    }
+    
+    table td {
+        font-size: 0.95rem;
+        font-weight: 400;
+    }
+    
+    /* Match card styling */
+    .card {
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Responsive grid for summary cards */
+    @media (max-width: 1400px) {
+        .analysis-summary {
+            grid-template-columns: repeat(3, 1fr) !important;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .analysis-summary {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .analysis-summary {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<!-- Analysis Summary Cards -->
+<div class="analysis-summary" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 20px; margin-bottom: 30px;">
+    <div class="summary-card" style="background: linear-gradient(135deg, rgba(108, 117, 125, 0.1) 0%, transparent 100%); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px;">
+        <div class="summary-icon" style="width: 50px; height: 50px; background-color: #6c757d; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-users" style="font-size: 1.5rem; color: white;"></i>
+        </div>
+        <div class="summary-content">
+            <h3 style="margin: 0; font-size: 1.8rem; color: var(--text-primary); font-weight: 700;">{{ stats.total_users }}</h3>
+            <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">Total Users</p>
+        </div>
+    </div>
+
+    <div class="summary-card" style="background: linear-gradient(135deg, rgba(108, 117, 125, 0.1) 0%, transparent 100%); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px;">
+        <div class="summary-icon" style="width: 50px; height: 50px; background-color: #6c757d; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-file-alt" style="font-size: 1.5rem; color: white;"></i>
+        </div>
+        <div class="summary-content">
+            <h3 style="margin: 0; font-size: 1.8rem; color: var(--text-primary); font-weight: 700;">{{ stats.total_reviews }}</h3>
+            <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">Total Reviews</p>
+        </div>
+    </div>
+
+    <div class="summary-card" style="background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, transparent 100%); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px;">
+        <div class="summary-icon" style="width: 50px; height: 50px; background-color: var(--accent-blue); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-tags" style="font-size: 1.5rem; color: white;"></i>
+        </div>
+        <div class="summary-content">
+            <h3 style="margin: 0; font-size: 1.8rem; color: var(--text-primary); font-weight: 700;">{{ total_aspects }}</h3>
+            <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">Aspects Identified</p>
+        </div>
+    </div>
+
+    <div class="summary-card" style="background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, transparent 100%); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px;">
+        <div class="summary-icon" style="width: 50px; height: 50px; background-color: #28a745; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-smile" style="font-size: 1.5rem; color: white;"></i>
+        </div>
+        <div class="summary-content">
+            <h3 style="margin: 0; font-size: 1.8rem; color: var(--text-primary); font-weight: 700;">{{ positive_count }}</h3>
+            <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">Positive Sentiments</p>
+        </div>
+    </div>
+
+    <div class="summary-card" style="background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, transparent 100%); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px;">
+        <div class="summary-icon" style="width: 50px; height: 50px; background-color: #dc3545; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-frown" style="font-size: 1.5rem; color: white;"></i>
+        </div>
+        <div class="summary-content">
+            <h3 style="margin: 0; font-size: 1.8rem; color: var(--text-primary); font-weight: 700;">{{ negative_count }}</h3>
+            <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">Negative Sentiments</p>
+        </div>
+    </div>
+
+    <div class="summary-card" style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, transparent 100%); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px;">
+        <div class="summary-icon" style="width: 50px; height: 50px; background-color: #ffc107; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-chart-line" style="font-size: 1.5rem; color: white;"></i>
+        </div>
+        <div class="summary-content">
+            <h3 style="margin: 0; font-size: 1.8rem; color: var(--text-primary); font-weight: 700;">{{ avg_confidence }}%</h3>
+            <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">Avg Confidence</p>
+        </div>
+    </div>
+</div>
+
+<section class="stat-cards" style="display: none;">
+    <div class="card">
+        <h3>Total Users</h3>
+        <p class="stat-number">{{ stats.total_users }}</p>
+    </div>
+    <div class="card">
+        <h3>Total Reviews</h3>
+        <p class="stat-number">{{ stats.total_reviews }}</p>
+    </div>
+    <div class="card">
+        <h3>Positive Sentiment</h3>
+        <p class="stat-number">{{ stats.positive_percentage }}%</p>
+    </div>
+    <div class="card">
+        <h3>Negative Sentiment</h3>
+        <p class="stat-number">{{ stats.negative_percentage }}%</p>
+    </div>
+</section>
+
+<div class="dashboard-grid">
+    <div class="side-panel">
+        <section class="table-container card">
+            <h2>Recent Reviews</h2>
+            <table>
+                <thead><tr><th>User ID</th><th>Review</th><th>Sentiment</th></tr></thead>
+                <tbody>
+                    {% for review in recent_reviews %}
+                    <tr>
+                        <td>{{ review.user_id }}</td>
+                        <td>{{ review.content | truncate(30) }}</td>
+                        <td><span class="sentiment-label {{ review.sentiment_label }}">{{ review.sentiment_label }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" style="text-align: center;">No reviews yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </div>
+    <div class="main-panel">
+        <section class="card">
+            <h2>Overall Sentiment Distribution</h2>
+            <div style="max-height: 250px; display: flex; justify-content: center; align-items: center;">
+                <canvas id="sentimentDonutChart"></canvas>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('sentimentDonutChart').getContext('2d');
+        
+        const chartData = {{ chart_data | tojson }};
+
+        const sentimentChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Positive', 'Negative'],
+                datasets: [{
+                    label: 'Sentiment Distribution',
+                    data: [chartData.positive, chartData.negative],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.8)',
+                        'rgba(220, 53, 69, 0.8)',
+                        'rgba(108, 117, 125, 0.8)'
+                    ],
+                    borderColor: [
+                        '#161b22',
+                        '#161b22',
+                        '#161b22'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#e6edf3',
+                            font: {
+                                family: "'Poppins', sans-serif"
+                            },
+                            padding: 34
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

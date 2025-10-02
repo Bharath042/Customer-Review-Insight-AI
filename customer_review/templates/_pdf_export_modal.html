@@ -1,0 +1,94 @@
+<!-- PDF Export Options Modal -->
+<div id="pdfExportModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.7); backdrop-filter: blur(5px);">
+    <div style="background-color: var(--bg-light); margin: 10% auto; padding: 0; border: 1px solid var(--border-color); border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 30px; border-bottom: 1px solid var(--border-color); background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, transparent 100%);">
+            <h2 style="margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-file-pdf" style="color: #dc3545;"></i> PDF Export Options
+            </h2>
+            <span onclick="closePdfExportModal()" style="cursor: pointer; font-size: 28px; font-weight: bold; color: var(--text-secondary); transition: color 0.3s;">&times;</span>
+        </div>
+        
+        <!-- Body -->
+        <div style="padding: 30px;">
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">Select what to include in your PDF report:</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <!-- Select All Option -->
+                <label style="display: flex; align-items: center; gap: 12px; padding: 15px; background-color: var(--bg-dark); border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s;" onmouseover="this.style.borderColor='var(--accent-blue)'" onmouseout="this.style.borderColor='transparent'">
+                    <input type="checkbox" id="selectAll" onchange="toggleAllOptions(this)" style="width: 20px; height: 20px; cursor: pointer;">
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-primary); font-size: 1.05rem;">
+                            <i class="fas fa-check-double"></i> Select All
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);">Include everything in the report</div>
+                    </div>
+                </label>
+
+                <!-- Aspect Analysis -->
+                <label style="display: flex; align-items: center; gap: 12px; padding: 15px; background-color: var(--bg-dark); border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s;" onmouseover="this.style.borderColor='var(--accent-blue)'" onmouseout="this.style.borderColor='transparent'">
+                    <input type="checkbox" id="includeAspects" class="pdf-option" style="width: 20px; height: 20px; cursor: pointer;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; color: var(--text-primary);">
+                            <i class="fas fa-tags" style="color: var(--accent-blue);"></i> Aspect Analysis Tables
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">Categorized & uncategorized aspects</div>
+                        <!-- Date Range for Aspects -->
+                        <div id="aspectsDateRange" style="display: none; margin-top: 10px; padding: 10px; background: rgba(74,144,226,0.1); border-radius: 4px;">
+                            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">Date Range:</label>
+                            <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                                <div style="flex: 1;">
+                                    <label style="font-size: 0.75rem; color: var(--text-secondary);">Start Date:</label>
+                                    <input type="date" id="aspectsStartDate" style="width: 100%; padding: 5px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-primary);">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label style="font-size: 0.75rem; color: var(--text-secondary);">End Date:</label>
+                                    <input type="date" id="aspectsEndDate" style="width: 100%; padding: 5px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-primary);">
+                                </div>
+                            </div>
+                            <label style="display: block; font-size: 0.85rem;">
+                                <input type="checkbox" id="aspectsAllTime"> All time (from first review)
+                            </label>
+                        </div>
+                    </div>
+                </label>
+
+                <!-- Detailed Reviews -->
+                <label style="display: flex; align-items: center; gap: 12px; padding: 15px; background-color: var(--bg-dark); border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s;" onmouseover="this.style.borderColor='var(--accent-blue)'" onmouseout="this.style.borderColor='transparent'">
+                    <input type="checkbox" id="includeReviews" class="pdf-option" style="width: 20px; height: 20px; cursor: pointer;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; color: var(--text-primary);">
+                            <i class="fas fa-file-alt" style="color: #28a745;"></i> Detailed Reviews
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">Include reviews with aspect highlights</div>
+                        <!-- Review Count Selector -->
+                        <div id="reviewCountSelector" style="display: none; margin-top: 10px; padding: 10px; background: rgba(40,167,69,0.1); border-radius: 4px;">
+                            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">Number of reviews:</label>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem;">
+                                    <input type="radio" name="reviewCount" value="10"> 10
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem;">
+                                    <input type="radio" name="reviewCount" value="20" checked> 20
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem;">
+                                    <input type="radio" name="reviewCount" value="50"> 50
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem;">
+                                    <input type="radio" name="reviewCount" value="all"> All
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Export Button -->
+            <button onclick="exportPdfWithOptions()" style="width: 100%; margin-top: 25px; padding: 12px; background-color: #dc3545; color: white; border: none; border-radius: 8px; font-size: 1.05rem; font-weight: 600; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.backgroundColor='#c82333'" onmouseout="this.style.backgroundColor='#dc3545'">
+                <i class="fas fa-download"></i> Generate PDF Report
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='pdf_export_modal.js') }}"></script>

@@ -121,22 +121,66 @@
 <div class="aspect-table-container">
     <h2>All User Reviews</h2>
     
-    <!-- Filter and Sort Form -->
-    <form method="get" class="mb-4" style="display: flex; gap: 1rem; align-items: center; margin-bottom: 20px;">
-        <label for="sentiment">Filter by Sentiment:</label>
-        <select name="sentiment" id="sentiment" class="form-select" style="width: 150px; padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
-            <option value="all" {% if current_filter == 'all' %}selected{% endif %}>All</option>
-            <option value="positive" {% if current_filter == 'positive' %}selected{% endif %}>Positive</option>
-            <option value="negative" {% if current_filter == 'negative' %}selected{% endif %}>Negative</option>
-        </select>
-        <label for="sort">Sort by:</label>
-        <select name="sort" id="sort" class="form-select" style="width: 150px; padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
-            <option value="confidence" {% if current_sort == 'confidence' %}selected{% endif %}>Confidence</option>
-            <option value="sentiment" {% if current_sort == 'sentiment' %}selected{% endif %}>Sentiment</option>
-            <option value="userid" {% if current_sort == 'userid' %}selected{% endif %}>User ID</option>
-        </select>
-        <button type="submit" class="btn btn-primary" style="padding: 8px 16px; background-color: var(--accent-blue); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">Apply</button>
-    </form>
+    <!-- Enhanced Filter and Sort Form -->
+    <div class="filter-section" style="background-color: var(--bg-light); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h4 style="color: var(--text-primary); margin-bottom: 15px;">
+            <i class="fas fa-filter"></i> Filter & Sort Reviews
+        </h4>
+        <form method="get" class="row g-3">
+            <div class="col-md-2">
+                <label for="sentiment" class="form-label" style="color: var(--text-primary);">Sentiment</label>
+                <select name="sentiment" id="sentiment" class="form-control" style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+                    <option value="all" {% if current_filter == 'all' %}selected{% endif %}>All</option>
+                    <option value="positive" {% if current_filter == 'positive' %}selected{% endif %}>Positive</option>
+                    <option value="negative" {% if current_filter == 'negative' %}selected{% endif %}>Negative</option>
+                    <option value="neutral" {% if current_filter == 'neutral' %}selected{% endif %}>Neutral</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="min_confidence" class="form-label" style="color: var(--text-primary);">Min Confidence</label>
+                <input type="number" class="form-control" id="min_confidence" name="min_confidence" 
+                       min="0" max="1" step="0.1" value="{{ request.args.get('min_confidence', '') }}"
+                       placeholder="0.0 - 1.0"
+                       style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+            </div>
+            <div class="col-md-2">
+                <label for="user_id" class="form-label" style="color: var(--text-primary);">User ID</label>
+                <input type="number" class="form-control" id="user_id" name="user_id" 
+                       value="{{ request.args.get('user_id', '') }}"
+                       placeholder="Filter by user"
+                       style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+            </div>
+            <div class="col-md-2">
+                <label for="start_date" class="form-label" style="color: var(--text-primary);">Start Date</label>
+                <input type="date" class="form-control" id="start_date" name="start_date" 
+                       value="{{ request.args.get('start_date', '') }}"
+                       style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+            </div>
+            <div class="col-md-2">
+                <label for="end_date" class="form-label" style="color: var(--text-primary);">End Date</label>
+                <input type="date" class="form-control" id="end_date" name="end_date" 
+                       value="{{ request.args.get('end_date', '') }}"
+                       style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+            </div>
+            <div class="col-md-2">
+                <label for="sort" class="form-label" style="color: var(--text-primary);">Sort By</label>
+                <select name="sort" id="sort" class="form-control" style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+                    <option value="confidence" {% if current_sort == 'confidence' %}selected{% endif %}>Confidence</option>
+                    <option value="sentiment" {% if current_sort == 'sentiment' %}selected{% endif %}>Sentiment</option>
+                    <option value="userid" {% if current_sort == 'userid' %}selected{% endif %}>User ID</option>
+                    <option value="date" {% if current_sort == 'date' %}selected{% endif %}>Date</option>
+                </select>
+            </div>
+            <div class="col-md-12 d-flex gap-2">
+                <button type="submit" class="btn" style="padding: 8px 20px; background-color: var(--accent-blue); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                    <i class="fas fa-filter"></i> Apply Filters
+                </button>
+                <a href="{{ url_for('admin_dashboard.analysis_page') }}" class="btn" style="padding: 8px 20px; background-color: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; text-decoration: none;">
+                    <i class="fas fa-redo"></i> Reset
+                </a>
+            </div>
+        </form>
+    </div>
     
     {% if results %}
         <table class="aspect-table">

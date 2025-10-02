@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login | ReviewSense AI</title>
+    <title>Login to ReviewSense AI</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='toast.css') }}">
 </head>
-<body class="admin-theme">
+<body class="user-theme">
     
     {% include '_flashes.html' %}
 
@@ -15,12 +15,12 @@
 
     <div class="login-container">
         <div class="login-box">
-            <h1>Administrator Access</h1>
-            <p class="subtitle">Please enter your admin credentials.</p>
+            <h1>Welcome Back</h1>
+            <p class="subtitle">Log in to access your dashboard.</p>
             
-            <form method="POST" action="{{ url_for('admin_auth.admin_login') }}" id="admin-login-form" novalidate>
+            <form method="POST" action="{{ url_for('login') }}" id="user-login-form" novalidate>
                 <div class="form-group">
-                    <input type="text" id="username" name="username" placeholder="Admin Username" autocomplete="off" data-validate>
+                    <input type="email" id="email" name="email" placeholder="Email Address" autocomplete="off" data-validate>
                     <div class="error-message"></div>
                 </div>
                 
@@ -37,6 +37,15 @@
                 
                 <button type="submit">Login</button>
             </form>
+            
+            <p class="register-link">
+                Don't have an account? 
+                <a href="{{ url_for('register_page') }}">Register here</a>
+            </p>
+            <p class="landing-link">
+                Go back to the 
+                <a href="{{ url_for('landing_page') }}">Landing Page</a>
+            </p>
         </div>
     </div>
     
@@ -44,6 +53,7 @@
     <script src="{{ url_for('static', filename='form_validation.js') }}"></script>
     <script src="{{ url_for('static', filename='toast.js') }}"></script>
     <script>
+        // Inline script for password toggle
         document.querySelectorAll('.toggle-password').forEach(toggle => {
             toggle.addEventListener('click', () => {
                 const passwordField = toggle.closest('.password-wrapper').querySelector('input');
