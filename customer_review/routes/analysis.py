@@ -157,6 +157,168 @@ def get_aspect_sentiment_summary(user_id, start_date=None, end_date=None):
     return categorized_summary, uncategorized_summary
 
 
+def get_category_summary(user_id, start_date=None, end_date=None):
+    """
+    Get aggregated sentiment data grouped by category.
+    Returns list of dictionaries with category-wise statistics.
+    """
+    # Query to get all aspects with their categories and sentiments
+    query = db.session.query(
+        Category.id.label('category_id'),
+        Category.name.label('category_name'),
+        AspectSentiment.sentiment,
+        AspectSentiment.score
+    ).join(Aspect, Category.id == Aspect.category_id)\
+     .join(AspectSentiment, Aspect.id == AspectSentiment.aspect_id)\
+     .join(RawText, AspectSentiment.raw_text_id == RawText.id)\
+     .filter(RawText.user_id == user_id)
+    
+    # Apply date filters
+    if start_date:
+        try:
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(RawText.timestamp >= start_dt)
+        except ValueError:
+            pass
+    
+    if end_date:
+        try:
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(RawText.timestamp < end_dt)
+        except ValueError:
+            pass
+    
+    results = query.all()
+    
+    # Aggregate by category
+    category_data = {}
+    for row in results:
+        cat_id = row.category_id
+        if cat_id not in category_data:
+            category_data[cat_id] = {
+                'category_id': cat_id,
+                'category_name': row.category_name,
+                'total_mentions': 0,
+                'positive': 0,
+                'negative': 0,
+                'neutral': 0,
+                'avg_score': 0,
+                'scores': []
+            }
+        
+        category_data[cat_id]['total_mentions'] += 1
+        category_data[cat_id]['scores'].append(row.score)
+        
+        sentiment = row.sentiment.upper()
+        if sentiment == 'POSITIVE':
+            category_data[cat_id]['positive'] += 1
+        elif sentiment == 'NEGATIVE':
+            category_data[cat_id]['negative'] += 1
+        elif sentiment == 'NEUTRAL':
+            category_data[cat_id]['neutral'] += 1
+    
+    # Calculate percentages and averages
+    category_summary = []
+    for cat_id, data in category_data.items():
+        total = data['total_mentions']
+        if total > 0:
+            data['positive_percentage'] = round((data['positive'] / total) * 100, 1)
+            data['negative_percentage'] = round((data['negative'] / total) * 100, 1)
+            data['neutral_percentage'] = round((data['neutral'] / total) * 100, 1)
+            data['avg_score'] = round(sum(data['scores']) / len(data['scores']), 2)
+            
+            # Determine dominant sentiment
+            if data['positive'] > data['negative'] and data['positive'] > data['neutral']:
+                data['dominant_sentiment'] = 'Positive'
+            elif data['negative'] > data['positive'] and data['negative'] > data['neutral']:
+                data['dominant_sentiment'] = 'Negative'
+            else:
+                data['dominant_sentiment'] = 'Neutral'
+        
+        del data['scores']  # Remove raw scores list
+        category_summary.append(data)
+    
+    # Sort by total mentions descending
+    category_summary.sort(key=lambda x: x['total_mentions'], reverse=True)
+    
+    return category_summary
+
+
+def get_category_trends(user_id, start_date=None, end_date=None):
+    """
+    Get sentiment trends over time grouped by category.
+    Returns time-series data for category-wise sentiment analysis.
+    """
+    # Query to get category sentiments over time
+    query = db.session.query(
+        RawText.timestamp,
+        Category.id.label('category_id'),
+        Category.name.label('category_name'),
+        AspectSentiment.sentiment,
+        AspectSentiment.score
+    ).join(AspectSentiment, RawText.id == AspectSentiment.raw_text_id)\
+     .join(Aspect, AspectSentiment.aspect_id == Aspect.id)\
+     .join(Category, Aspect.category_id == Category.id)\
+     .filter(RawText.user_id == user_id)
+    
+    # Apply date filters
+    if start_date:
+        try:
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(RawText.timestamp >= start_dt)
+        except ValueError:
+            pass
+    
+    if end_date:
+        try:
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(RawText.timestamp < end_dt)
+        except ValueError:
+            pass
+    
+    query = query.order_by(RawText.timestamp.asc())
+    results = query.all()
+    
+    # Group by date and category
+    trends_data = {}
+    for row in results:
+        date_key = row.timestamp.strftime('%Y-%m-%d')
+        cat_name = row.category_name
+        
+        if date_key not in trends_data:
+            trends_data[date_key] = {}
+        
+        if cat_name not in trends_data[date_key]:
+            trends_data[date_key][cat_name] = {
+                'positive': 0,
+                'negative': 0,
+                'neutral': 0,
+                'total': 0,
+                'avg_sentiment': 0
+            }
+        
+        trends_data[date_key][cat_name]['total'] += 1
+        sentiment = row.sentiment.upper()
+        if sentiment == 'POSITIVE':
+            trends_data[date_key][cat_name]['positive'] += 1
+        elif sentiment == 'NEGATIVE':
+            trends_data[date_key][cat_name]['negative'] += 1
+        elif sentiment == 'NEUTRAL':
+            trends_data[date_key][cat_name]['neutral'] += 1
+    
+    # Calculate average sentiment score for each date/category
+    for date_key in trends_data:
+        for cat_name in trends_data[date_key]:
+            data = trends_data[date_key][cat_name]
+            total = data['total']
+            if total > 0:
+                # Calculate sentiment score: positive=1, neutral=0, negative=-1
+                score = (data['positive'] - data['negative']) / total
+                data['avg_sentiment'] = round(score, 2)
+    
+    return trends_data
+
+
 @analysis_bp.route('/test-nlp')
 def test_nlp_page():
     # ... (sample_reviews and results initialization) ...
@@ -202,11 +364,15 @@ def aspect_analysis_page():
     
     with current_app.app_context():
         categorized_aspect_summary, uncategorized_aspect_summary = get_aspect_sentiment_summary(user_id, start_date, end_date)
+        category_summary = get_category_summary(user_id, start_date, end_date)
+        category_trends = get_category_trends(user_id, start_date, end_date)
 
     return render_template(
         'aspect_analysis.html',
         categorized_aspect_summary=categorized_aspect_summary,
         uncategorized_aspect_summary=uncategorized_aspect_summary,
+        category_summary=category_summary,
+        category_trends=category_trends,
         start_date=start_date,
         end_date=end_date
     )
@@ -305,6 +471,26 @@ def sentiment_trends_page():
     )
 
 
+@analysis_bp.route('/sentiment-trends-embed')
+def sentiment_trends_embed():
+    """Display sentiment trends chart only (for embedding in tabs)"""
+    if "user_id" not in session:
+        return "Please log in", 401
+    
+    user_id = session["user_id"]
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    trends_data = get_sentiment_trends(user_id, start_date, end_date)
+    
+    return render_template(
+        'sentiment_trends_embed.html',
+        trends_data=trends_data,
+        start_date=start_date,
+        end_date=end_date
+    )
+
+
 @analysis_bp.route('/export-csv')
 def export_csv():
     """Export aspect analysis to CSV"""
@@ -394,6 +580,9 @@ def export_pdf():
     # Get aspect summary with appropriate date range
     categorized_summary, uncategorized_summary = get_aspect_sentiment_summary(user_id, aspects_start_date, aspects_end_date)
     
+    # Get category summary for new section
+    category_summary = get_category_summary(user_id, aspects_start_date, aspects_end_date)
+    
     # Get reviews with aspects for detailed section
     query = RawText.query.filter_by(user_id=user_id).options(joinedload(RawText.aspect_sentiments))
     reviews = query.order_by(RawText.timestamp.desc()).all()
@@ -446,8 +635,62 @@ def export_pdf():
     elements.append(Paragraph(f"<b>Total Reviews:</b> {len(reviews)}", styles['Normal']))
     if include_reviews:
         count_text = "All" if review_count is None else str(review_count)
-        elements.append(Paragraph(f"<b>Reviews in Report:</b> {count_text}", styles['Normal']))
-    elements.append(Spacer(1, 20))
+    elements.append(Spacer(1, 30))
+    
+    # === CATEGORY PERFORMANCE SUMMARY ===
+    if include_aspects and category_summary:
+        elements.append(Paragraph("Category Performance Overview", heading_style))
+        elements.append(Spacer(1, 12))
+        
+        # Create category summary table
+        cat_table_data = [['Category', 'Total', 'Positive', 'Negative', 'Neutral', 'Avg Score', 'Dominant']]
+        
+        for cat in category_summary:
+            cat_table_data.append([
+                cat['category_name'],
+                str(cat['total_mentions']),
+                f"{cat['positive']} ({cat['positive_percentage']}%)",
+                f"{cat['negative']} ({cat['negative_percentage']}%)",
+                f"{cat['neutral']} ({cat['neutral_percentage']}%)",
+                f"{cat['avg_score']:.2f}",
+                cat['dominant_sentiment']
+            ])
+        
+        cat_table = Table(cat_table_data, colWidths=[1.5*inch, 0.7*inch, 1*inch, 1*inch, 1*inch, 0.8*inch, 0.9*inch])
+        cat_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c3e50')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+        ]))
+        
+        elements.append(cat_table)
+        elements.append(Spacer(1, 15))
+        
+        # Add category insights
+        elements.append(Paragraph("<b>Category Insights:</b>", styles['Heading3']))
+        elements.append(Spacer(1, 6))
+        
+        # Find best and worst categories
+        if len(category_summary) > 0:
+            best_cat = max(category_summary, key=lambda x: x['positive_percentage'])
+            worst_cat = max(category_summary, key=lambda x: x['negative_percentage'])
+            
+            elements.append(Paragraph(
+                f"• <b>Best Performing:</b> {best_cat['category_name']} ({best_cat['positive_percentage']}% positive)",
+                styles['Normal']
+            ))
+            elements.append(Paragraph(
+                f"• <b>Needs Attention:</b> {worst_cat['category_name']} ({worst_cat['negative_percentage']}% negative)",
+                styles['Normal']
+            ))
+            elements.append(Spacer(1, 20))
     
     # Generate Overall Aspect Sentiment Scores Chart (if aspects exist and matplotlib available)
     if include_aspects and MATPLOTLIB_AVAILABLE and (categorized_summary or uncategorized_summary):
@@ -470,8 +713,8 @@ def export_pdf():
                     else:
                         bar_colors.append('#6c757d')  # Gray for neutral
                 
-                # Create VERTICAL bar chart to match web page
-                fig, ax = plt.subplots(figsize=(max(8, len(all_aspects) * 0.8), 5))
+                # Create VERTICAL bar chart to match web page (reduced size for PDF)
+                fig, ax = plt.subplots(figsize=(7, 3.5))
                 x_pos = range(len(aspect_names))
                 
                 # Create vertical bars
@@ -523,17 +766,18 @@ def export_pdf():
     if include_aspects and categorized_summary:
         elements.append(Paragraph("Categorized Aspects", heading_style))
         
-        table_data = [['Aspect', 'Positive', 'Negative', 'Total', 'Dominant']]
+        table_data = [['Aspect', 'Positive', 'Negative', 'Neutral', 'Total', 'Dominant']]
         for item in categorized_summary:
             table_data.append([
                 item['aspect'],
                 str(item['positive']),
                 str(item['negative']),
+                str(item.get('neutral', 0)),
                 str(item['total_mentions']),
                 item['dominant_sentiment']
             ])
         
-        table = Table(table_data, colWidths=[2.5*inch, 1*inch, 1*inch, 1*inch, 1.5*inch])
+        table = Table(table_data, colWidths=[2*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 1.3*inch])
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3498db')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -551,17 +795,18 @@ def export_pdf():
     if include_aspects and uncategorized_summary:
         elements.append(Paragraph("Uncategorized Aspects (Top 10)", heading_style))
         
-        table_data = [['Aspect', 'Positive', 'Negative', 'Total', 'Dominant']]
+        table_data = [['Aspect', 'Positive', 'Negative', 'Neutral', 'Total', 'Dominant']]
         for item in uncategorized_summary[:10]:
             table_data.append([
                 item['aspect'],
                 str(item['positive']),
                 str(item['negative']),
+                str(item.get('neutral', 0)),
                 str(item['total_mentions']),
                 item['dominant_sentiment']
             ])
         
-        table = Table(table_data, colWidths=[2.5*inch, 1*inch, 1*inch, 1*inch, 1.5*inch])
+        table = Table(table_data, colWidths=[2*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 1.3*inch])
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e74c3c')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: transparent;
+            font-family: 'Roboto', sans-serif;
+        }
+        .chart-container {
+            background-color: var(--bg-light, #1e1e1e);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #adb5bd;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+    {% if trends_data and trends_data.dates %}
+    <div class="chart-container">
+        <canvas id="trendsChart" style="max-height: 500px;"></canvas>
+    </div>
+
+    <script>
+        const trendsData = {{ trends_data | tojson }};
+        
+        Chart.defaults.color = 'white';
+        Chart.defaults.font.size = 12;
+        
+        const ctx = document.getElementById('trendsChart').getContext('2d');
+        
+        const datasets = [];
+        const colors = [
+            'rgba(74, 144, 226, 1)',
+            'rgba(220, 53, 69, 1)',
+            'rgba(40, 167, 69, 1)',
+            'rgba(255, 193, 7, 1)',
+            'rgba(156, 39, 176, 1)',
+            'rgba(0, 188, 212, 1)'
+        ];
+        
+        let colorIndex = 0;
+        for (const [aspectName, aspectData] of Object.entries(trendsData.aspects)) {
+            datasets.push({
+                label: aspectName,
+                data: aspectData,
+                borderColor: colors[colorIndex % colors.length],
+                backgroundColor: colors[colorIndex % colors.length].replace('1)', '0.2)'),
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4
+            });
+            colorIndex++;
+        }
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: trendsData.dates,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2.5,
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(108, 117, 125, 0.2)' },
+                        ticks: { color: 'white' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        min: -1,
+                        max: 1,
+                        grid: { color: 'rgba(108, 117, 125, 0.2)' },
+                        ticks: { color: 'white' }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: { color: 'white', padding: 15 }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Aspect Sentiment Trends Over Time',
+                        color: 'white',
+                        font: { size: 16, weight: 'bold' }
+                    }
+                }
+            }
+        });
+    </script>
+    {% else %}
+    <div class="no-data">
+        <i class="fas fa-chart-line" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+        <p>No trend data available yet. Submit more reviews to see trends over time!</p>
+    </div>
+    {% endif %}
+</body>
+</html>

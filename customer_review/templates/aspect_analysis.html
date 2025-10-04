@@ -40,6 +40,7 @@
         }
         .sentiment-positive { color: #28a745; font-weight: bold; } /* Green */
         .sentiment-negative { color: #dc3545; font-weight: bold; } /* Red */
+        .sentiment-neutral { color: #6c757d; font-weight: bold; } /* Gray */
 
         .no-data-message {
             text-align: center;
@@ -73,12 +74,60 @@
             --chart-grid-color: rgba(108, 117, 125, 0.2); 
             --chart-tick-color: var(--text-color, #ffffff); 
         }
+
+        /* Tab Styles */
+        .tab-button {
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: var(--text-secondary);
+            padding: 15px 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-button:hover {
+            color: var(--text-primary);
+            background-color: rgba(74, 144, 226, 0.1);
+        }
+
+        .tab-button.active {
+            color: var(--accent-blue);
+            border-bottom-color: var(--accent-blue);
+        }
+
+        .tab-badge {
+            background-color: var(--accent-blue);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin-left: 8px;
+            font-weight: 700;
+        }
+
+        .tab-panel {
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 {% endblock %}
 
 {% block content %}
     <div class="content-header d-flex justify-content-between align-items-center">
-        <h1>Aspect-Based Sentiment Analysis</h1>
+        <h1>Analysis</h1>
         <div>
             <a href="{{ url_for('analysis.export_csv', start_date=start_date, end_date=end_date) }}" class="btn btn-sm" style="background-color: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; margin-right: 10px;">
                 <i class="fas fa-file-csv"></i> Export CSV
@@ -109,11 +158,11 @@
                                value="{{ end_date if end_date else '' }}"
                                style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; color-scheme: dark;">
                     </div>
-                    <div class="col-md-2 d-flex align-items-end gap-2">
+                    <div class="col-md-12 d-flex gap-2">
                         <button type="submit" class="btn" style="padding: 8px 20px; background-color: var(--accent-blue); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
                             <i class="fas fa-filter"></i> Apply Filters
                         </button>
-                        <a href="{{ url_for('analysis.aspect_analysis_page') }}" class="btn" style="padding: 8px 20px; background-color: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; text-decoration: none;">
+                        <a href="{{ url_for('admin_dashboard.analysis_page') }}" class="btn" style="padding: 8px 20px; background-color: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; text-decoration: none;">
                             <i class="fas fa-redo"></i> Reset
                         </a>
                     </div>
@@ -121,6 +170,113 @@
             </form>
         </div>
     </div>
+
+    <!-- Tabbed Dashboard -->
+    <div class="tabs-container" style="margin: 0;">
+        <!-- Tab Navigation -->
+        <div class="tab-nav" style="display: flex; gap: 0; border-bottom: 2px solid var(--border-color); border-top: 2px solid var(--border-color); margin-bottom: 30px; position: sticky; top: 0; background-color: var(--bg-dark); z-index: 100; padding-top: 10px;">
+            <button class="tab-button active" onclick="switchTab('overview')" data-tab="overview">
+                <i class="fas fa-chart-pie"></i> Overview
+            </button>
+            <button class="tab-button" onclick="switchTab('categories')" data-tab="categories">
+                <i class="fas fa-folder"></i> Categories
+                {% if category_summary %}<span class="tab-badge">{{ category_summary|length }}</span>{% endif %}
+            </button>
+            <button class="tab-button" onclick="switchTab('aspects')" data-tab="aspects">
+                <i class="fas fa-search"></i> Aspects
+                {% if categorized_aspect_summary %}<span class="tab-badge">{{ categorized_aspect_summary|length }}</span>{% endif %}
+            </button>
+            <button class="tab-button" onclick="switchTab('trends')" data-tab="trends">
+                <i class="fas fa-chart-line"></i> Trends & Timeline
+            </button>
+        </div>
+
+        <!-- Tab Content Panels -->
+        <div class="tab-content-wrapper">
+
+            <!-- TAB 1: OVERVIEW -->
+            <div class="tab-panel active" id="tab-overview">
+
+    {# Category Summary Cards #}
+    {% if category_summary %}
+    <div style="margin: 20px;">
+        <h2 style="color: var(--text-primary); margin-bottom: 20px;">
+            <i class="fas fa-chart-pie"></i> Category Performance Overview
+        </h2>
+        <div class="row g-3" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+            {% for category in category_summary %}
+            <div class="card" style="background: linear-gradient(135deg, var(--bg-light) 0%, var(--bg-dark) 100%); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="color: var(--text-primary); margin: 0; font-size: 1.2rem;">
+                        <i class="fas fa-folder"></i> {{ category.category_name }}
+                    </h3>
+                    <span style="background-color: {% if category.dominant_sentiment == 'Positive' %}#28a745{% elif category.dominant_sentiment == 'Negative' %}#dc3545{% else %}#6c757d{% endif %}; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">
+                        {{ category.dominant_sentiment }}
+                    </span>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="color: var(--text-secondary);">Total Mentions:</span>
+                        <strong style="color: var(--text-primary);">{{ category.total_mentions }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="color: #28a745;">Positive:</span>
+                        <strong style="color: #28a745;">{{ category.positive }} ({{ category.positive_percentage }}%)</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="color: #dc3545;">Negative:</span>
+                        <strong style="color: #dc3545;">{{ category.negative }} ({{ category.negative_percentage }}%)</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="color: #6c757d;">Neutral:</span>
+                        <strong style="color: #6c757d;">{{ category.neutral }} ({{ category.neutral_percentage }}%)</strong>
+                    </div>
+                </div>
+                <div style="background-color: rgba(255,255,255,0.05); border-radius: 8px; padding: 10px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: var(--text-secondary); font-size: 0.9rem;">Avg Score:</span>
+                        <strong style="color: var(--accent-blue); font-size: 1.1rem;">{{ category.avg_score }}</strong>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+            </div> <!-- End TAB 1: OVERVIEW -->
+
+            <!-- TAB 2: CATEGORIES -->
+            <div class="tab-panel" id="tab-categories">
+                <h2 style="color: var(--text-primary); margin-bottom: 30px;">
+                    <i class="fas fa-folder"></i> Category Analysis
+                </h2>
+
+    {# Category Sentiment Chart #}
+    {% if category_summary %}
+    <div class="main-chart-card">
+        <h2><i class="fas fa-chart-bar"></i> Category-wise Sentiment Comparison</h2>
+        <div class="main-chart-canvas-container">
+            <canvas id="categorySentimentChart"></canvas>
+        </div>
+    </div>
+
+    {# Category Trends Chart #}
+    {% if category_trends %}
+    <div class="main-chart-card">
+        <h2><i class="fas fa-chart-line"></i> Category Sentiment Trends Over Time</h2>
+        <div class="main-chart-canvas-container">
+            <canvas id="categoryTrendsChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+            </div> <!-- End TAB 2: CATEGORIES -->
+
+            <!-- TAB 3: ASPECTS -->
+            <div class="tab-panel" id="tab-aspects">
+                <h2 style="color: var(--text-primary); margin-bottom: 30px;">
+                    <i class="fas fa-search"></i> Aspect Details
+                </h2>
 
     {# Combined check for any data to display the chart and tables #}
     {% if categorized_aspect_summary or uncategorized_aspect_summary %}
@@ -143,6 +299,7 @@
                             <th>Total Mentions</th>
                             <th class="sentiment-positive">Positive (%)</th>
                             <th class="sentiment-negative">Negative (%)</th>
+                            <th class="sentiment-neutral">Neutral (%)</th>
                             <th>Avg. Sentiment Strength</th> 
                             <th>Dominant Sentiment</th>
                         </tr>
@@ -154,6 +311,7 @@
                                 <td>{{ aspect_data.total_mentions }}</td>
                                 <td class="sentiment-positive">{{ aspect_data.positive_percentage }}%</td>
                                 <td class="sentiment-negative">{{ aspect_data.negative_percentage }}%</td>
+                                <td class="sentiment-neutral">{{ aspect_data.neutral_percentage }}%</td>
                                 <td>{{ aspect_data.average_sentiment_strength | round(2) }}</td> 
                                 <td class="sentiment-{{ aspect_data.dominant_sentiment | lower }}">{{ aspect_data.dominant_sentiment }}</td>
                             </tr>
@@ -180,6 +338,7 @@
                             <th>Total Mentions</th>
                             <th class="sentiment-positive">Positive (%)</th>
                             <th class="sentiment-negative">Negative (%)</th>
+                            <th class="sentiment-neutral">Neutral (%)</th>
                             <th>Avg. Sentiment Strength</th> 
                             <th>Dominant Sentiment</th>
                         </tr>
@@ -191,6 +350,7 @@
                                 <td>{{ aspect_data.total_mentions }}</td>
                                 <td class="sentiment-positive">{{ aspect_data.positive_percentage }}%</td>
                                 <td class="sentiment-negative">{{ aspect_data.negative_percentage }}%</td>
+                                <td class="sentiment-neutral">{{ aspect_data.neutral_percentage }}%</td>
                                 <td>{{ aspect_data.average_sentiment_strength | round(2) }}</td> 
                                 <td class="sentiment-{{ aspect_data.dominant_sentiment | lower }}">{{ aspect_data.dominant_sentiment }}</td>
                             </tr>
@@ -210,6 +370,22 @@
             <p>No aspect-based sentiment data available yet. Please submit some reviews!</p>
         </div>
     {% endif %}
+            </div> <!-- End TAB 3: ASPECTS -->
+
+            <!-- TAB 4: TRENDS & TIMELINE -->
+            <div class="tab-panel" id="tab-trends">
+                <h2 style="color: var(--text-primary); margin-bottom: 30px;">
+                    <i class="fas fa-chart-line"></i> Sentiment Trends & Timeline
+                </h2>
+                <div style="background-color: var(--bg-light); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 20px;">
+                    <iframe src="{{ url_for('analysis.sentiment_trends_embed', start_date=start_date, end_date=end_date) }}" 
+                            style="width: 100%; height: 600px; border: none; background-color: transparent;">
+                    </iframe>
+                </div>
+            </div> <!-- End TAB 4: TRENDS -->
+
+        </div> <!-- End tab-content-wrapper -->
+    </div> <!-- End tabs-container -->
 
 {% endblock %}
 
@@ -221,6 +397,132 @@
             Chart.defaults.color = 'white'; 
             Chart.defaults.font.size = 12; 
             Chart.defaults.font.family = "'Roboto', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif"; 
+
+            // Category Summary Data
+            const categorySummary = {{ category_summary | tojson if category_summary else '[]' | safe }};
+            const categoryTrends = {{ category_trends | tojson if category_trends else '{}' | safe }};
+
+            // Create Category Sentiment Chart
+            if (categorySummary.length > 0) {
+                const catChartCanvas = document.getElementById('categorySentimentChart');
+                if (catChartCanvas) {
+                    const catLabels = categorySummary.map(c => c.category_name);
+                    const catPositive = categorySummary.map(c => c.positive_percentage);
+                    const catNegative = categorySummary.map(c => c.negative_percentage);
+                    const catNeutral = categorySummary.map(c => c.neutral_percentage);
+
+                    new Chart(catChartCanvas.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: catLabels,
+                            datasets: [
+                                {
+                                    label: 'Positive %',
+                                    data: catPositive,
+                                    backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                                    borderColor: 'rgba(40, 167, 69, 1)',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'Negative %',
+                                    data: catNegative,
+                                    backgroundColor: 'rgba(220, 53, 69, 0.8)',
+                                    borderColor: 'rgba(220, 53, 69, 1)',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'Neutral %',
+                                    data: catNeutral,
+                                    backgroundColor: 'rgba(108, 117, 125, 0.8)',
+                                    borderColor: 'rgba(108, 117, 125, 1)',
+                                    borderWidth: 1
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    stacked: true,
+                                    grid: { color: 'rgba(108, 117, 125, 0.2)' },
+                                    ticks: { color: 'white' }
+                                },
+                                y: {
+                                    stacked: true,
+                                    beginAtZero: true,
+                                    max: 100,
+                                    grid: { color: 'rgba(108, 117, 125, 0.2)' },
+                                    ticks: { color: 'white' }
+                                }
+                            },
+                            plugins: {
+                                legend: { display: true, labels: { color: 'white' } },
+                                title: { display: false }
+                            }
+                        }
+                    });
+                }
+            }
+
+            // Create Category Trends Chart
+            if (Object.keys(categoryTrends).length > 0) {
+                const trendsChartCanvas = document.getElementById('categoryTrendsChart');
+                if (trendsChartCanvas) {
+                    const dates = Object.keys(categoryTrends).sort();
+                    const categories = new Set();
+                    dates.forEach(date => {
+                        Object.keys(categoryTrends[date]).forEach(cat => categories.add(cat));
+                    });
+
+                    const colors = [
+                        'rgba(74, 144, 226, 1)',
+                        'rgba(220, 53, 69, 1)',
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(255, 193, 7, 1)',
+                        'rgba(156, 39, 176, 1)'
+                    ];
+
+                    const datasets = Array.from(categories).map((cat, idx) => ({
+                        label: cat,
+                        data: dates.map(date => categoryTrends[date][cat]?.avg_sentiment || 0),
+                        borderColor: colors[idx % colors.length],
+                        backgroundColor: colors[idx % colors.length].replace('1)', '0.2)'),
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.4
+                    }));
+
+                    new Chart(trendsChartCanvas.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            labels: dates,
+                            datasets: datasets
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    grid: { color: 'rgba(108, 117, 125, 0.2)' },
+                                    ticks: { color: 'white' }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    min: -1,
+                                    max: 1,
+                                    grid: { color: 'rgba(108, 117, 125, 0.2)' },
+                                    ticks: { color: 'white' }
+                                }
+                            },
+                            plugins: {
+                                legend: { display: true, labels: { color: 'white' } },
+                                title: { display: false }
+                            }
+                        }
+                    });
+                }
+            }
 
             // Combine both categorized and uncategorized aspects for the single chart
             const categorizedAspectSummary = {{ categorized_aspect_summary | tojson }}; 
@@ -334,6 +636,30 @@
             const aspectAnalysisLink = document.querySelector('.sidebar-nav ul li a[href="{{ url_for('analysis.aspect_analysis_page') }}"]');
             if (aspectAnalysisLink) {
                 aspectAnalysisLink.classList.add('active');
+            }
+        });
+    </script>
+    
+    <!-- Tab Switching JavaScript -->
+    <script>
+        function switchTab(tabName) {
+            // Remove active class from all tabs and panels
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+            
+            // Add active class to clicked tab and corresponding panel
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            
+            // Save to localStorage
+            localStorage.setItem('activeAnalysisTab', tabName);
+        }
+
+        // Restore last active tab on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const lastTab = localStorage.getItem('activeAnalysisTab');
+            if (lastTab && document.getElementById(`tab-${lastTab}`)) {
+                switchTab(lastTab);
             }
         });
     </script>

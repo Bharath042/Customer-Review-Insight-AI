@@ -106,8 +106,8 @@ def _highlight_aspects_in_text(review_content, aspect_sentiments):
         last_idx = 0 
 
         for aspect_obj in sorted_aspects:
-            # Only highlight POSITIVE and NEGATIVE aspects, NOT NEUTRAL.
-            if aspect_obj.sentiment == "POSITIVE" or aspect_obj.sentiment == "NEGATIVE":
+            # Highlight POSITIVE, NEGATIVE, and NEUTRAL aspects
+            if aspect_obj.sentiment in ["POSITIVE", "NEGATIVE", "NEUTRAL"]:
 
                 # Calculate start_idx and end_idx relative to the current sentence
                 # Subtract the sentence's start_char from the aspect's global start/end_char
@@ -131,6 +131,8 @@ def _highlight_aspects_in_text(review_content, aspect_sentiments):
                     inline_style = "background-color: rgba(40, 167, 69, 0.2); color: #28a745; font-weight: bold;"
                 elif aspect_obj.sentiment == "NEGATIVE":
                     inline_style = "background-color: rgba(220, 53, 69, 0.2); color: #dc3545; font-weight: bold;"
+                elif aspect_obj.sentiment == "NEUTRAL":
+                    inline_style = "background-color: rgba(108, 117, 125, 0.35); color: #adb5bd; font-weight: bold; border: 1px solid rgba(108, 117, 125, 0.4);"
 
                 # Use the actual keyword_found from the aspect object for the span content
                 highlight_span_html = f"<span class='highlight-aspect' style='{inline_style}'>{aspect_obj.keyword_found}</span>"
@@ -389,11 +391,34 @@ def my_reviews():
     query = RawText.query.filter_by(user_id=user.id).options(db.joinedload(RawText.aspect_sentiments))
     
     # Apply filters from request args
+    category_filter = request.args.get('category')
     sentiment_filter = request.args.get('sentiment')
     min_confidence = request.args.get('min_confidence')
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
     sort_by = request.args.get('sort', 'date')
+    
+    # Category filter - filter reviews that have aspects from the selected category
+    if category_filter:
+        try:
+            category_id = int(category_filter)
+            # Get all aspect IDs for this category
+            from models import Aspect
+            aspect_ids = [a.id for a in Aspect.query.filter_by(category_id=category_id).all()]
+            if aspect_ids:
+                # Filter reviews that have at least one aspect from this category
+                from models import AspectSentiment
+                review_ids = db.session.query(AspectSentiment.raw_text_id).filter(
+                    AspectSentiment.aspect_id.in_(aspect_ids)
+                ).distinct().all()
+                review_ids = [r[0] for r in review_ids]
+                if review_ids:
+                    query = query.filter(RawText.id.in_(review_ids))
+                else:
+                    # No reviews found for this category
+                    query = query.filter(RawText.id == -1)  # Return empty result
+        except ValueError:
+            pass
     
     if sentiment_filter:
         query = query.filter(RawText.sentiment == sentiment_filter)

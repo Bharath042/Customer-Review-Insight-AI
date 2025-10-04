@@ -17,8 +17,9 @@
     color: #dc3545 !important;
 }
 .highlight-aspect.sentiment-neutral {
-    background-color: rgba(108, 117, 125, 0.2) !important;
-    color: #6c757d !important;
+    background-color: rgba(108, 117, 125, 0.35) !important;
+    color: #adb5bd !important;
+    border: 1px solid rgba(108, 117, 125, 0.4) !important;
 }
 
 /* Sentiment labels */

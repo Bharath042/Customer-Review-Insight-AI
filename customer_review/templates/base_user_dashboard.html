@@ -20,8 +20,7 @@
                 <ul>
                     <li><a href="{{ url_for('home') }}" {% if request.endpoint == 'home' %}class="active"{% endif %}><i class="fas fa-home"></i><span>Dashboard</span></a></li>
                     <li><a href="{{ url_for('my_reviews') }}" {% if request.endpoint == 'my_reviews' %}class="active"{% endif %}><i class="fas fa-file-alt"></i><span>My Reviews</span></a></li>
-                    <li><a href="{{ url_for('analysis.aspect_analysis_page') }}" {% if request.endpoint == 'analysis.aspect_analysis_page' %}class="active"{% endif %}><i class="fas fa-tags"></i><span>Aspect Analysis</span></a></li>
-                    <li><a href="{{ url_for('analysis.sentiment_trends_page') }}" {% if request.endpoint == 'analysis.sentiment_trends_page' %}class="active"{% endif %}><i class="fas fa-chart-line"></i><span>Sentiment Trends</span></a></li>
+                    <li><a href="{{ url_for('analysis.aspect_analysis_page') }}" {% if request.endpoint == 'analysis.aspect_analysis_page' %}class="active"{% endif %}><i class="fas fa-tags"></i><span>Analysis</span></a></li>
                 </ul>
                 <ul class="logout-nav">
                     <li><a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i><span>Logout</span></a></li>

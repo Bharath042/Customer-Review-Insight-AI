@@ -8,7 +8,7 @@
 {% endblock %}
 {% block content %}
     <header class="header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1>My Reviews</h1>
+        <h1>My Reviews & Sentiment</h1>
         <button id="addReviewBtn" class="btn-add-review" style="background: linear-gradient(135deg, var(--accent-blue) 0%, #5a8fd6 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.3s ease;">
             <i class="fas fa-plus-circle"></i> Add Reviews
         </button>
@@ -99,11 +99,18 @@
                 </div>
                 <div class="form-group">
                     <label for="csv-file-input"><i class="fas fa-file-upload"></i> Upload CSV File <span class="required">*</span></label>
-                    <div class="file-upload-wrapper">
-                        <input type="file" name="file" id="csv-file-input" accept=".csv">
-                        <div class="file-upload-hint">
+                    <div class="file-upload-wrapper" style="position: relative;">
+                        <input type="file" name="file" id="csv-file-input" accept=".csv" onchange="updateFileName(this)" style="position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; z-index: 10;">
+                        <div class="file-upload-hint" id="csv-file-hint">
                             <i class="fas fa-cloud-upload-alt"></i>
                             <span>Click to browse or drag & drop your CSV file here</span>
+                        </div>
+                        <div class="file-selected" id="csv-file-selected" style="display: none;">
+                            <i class="fas fa-file-csv" style="color: #28a745;"></i>
+                            <span id="csv-file-name"></span>
+                            <button type="button" class="btn-remove-file" onclick="clearFile('csv-file-input')" title="Remove file">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
                     </div>
                     <small class="help-text"><i class="fas fa-lightbulb"></i> Supported format: .csv (First column should contain reviews)</small>
@@ -165,66 +172,75 @@
         </div>
     </div>
 
-    <section class="table-container card">
-        <h2>My Reviews & Sentiment</h2>
-        
-        <!-- Filter Section -->
-        <div class="filter-section" style="background-color: var(--bg-light); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="color: var(--text-primary); margin-bottom: 15px;">
-                <i class="fas fa-filter"></i> Filter & Sort Reviews
-            </h4>
-            <form method="GET" action="{{ url_for('my_reviews') }}">
-                <div class="row g-3">
-                    <div class="col-md-2">
-                        <label for="sentiment_filter" class="form-label" style="color: var(--text-primary);">Sentiment</label>
-                        <select class="form-control" id="sentiment_filter" name="sentiment" 
-                                style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
-                            <option value="">All</option>
-                            <option value="POSITIVE" {% if request.args.get('sentiment') == 'POSITIVE' %}selected{% endif %}>Positive</option>
-                            <option value="NEGATIVE" {% if request.args.get('sentiment') == 'NEGATIVE' %}selected{% endif %}>Negative</option>
-                            <option value="NEUTRAL" {% if request.args.get('sentiment') == 'NEUTRAL' %}selected{% endif %}>Neutral</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label for="min_confidence" class="form-label" style="color: var(--text-primary);">Min Confidence</label>
-                        <input type="number" class="form-control" id="min_confidence" name="min_confidence" 
-                               min="0" max="1" step="0.1" value="{{ request.args.get('min_confidence', '') }}"
-                               placeholder="0.0 - 1.0"
-                               style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
-                    </div>
-                    <div class="col-md-2">
-                        <label for="start_date" class="form-label" style="color: var(--text-primary);">Start Date</label>
-                        <input type="date" class="form-control" id="start_date" name="start_date" 
-                               value="{{ request.args.get('start_date', '') }}"
-                               style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; color-scheme: dark;">
-                    </div>
-                    <div class="col-md-2">
-                        <label for="end_date" class="form-label" style="color: var(--text-primary);">End Date</label>
-                        <input type="date" class="form-control" id="end_date" name="end_date" 
-                               value="{{ request.args.get('end_date', '') }}"
-                               style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; color-scheme: dark;">
-                    </div>
-                    <div class="col-md-2">
-                        <label for="sort" class="form-label" style="color: var(--text-primary);">Sort By</label>
-                        <select class="form-control" id="sort" name="sort" 
-                                style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
-                            <option value="date" {% if request.args.get('sort') == 'date' %}selected{% endif %}>Date</option>
-                            <option value="confidence" {% if request.args.get('sort') == 'confidence' %}selected{% endif %}>Confidence</option>
-                            <option value="sentiment" {% if request.args.get('sort') == 'sentiment' %}selected{% endif %}>Sentiment</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2 d-flex align-items-end gap-2">
-                        <button type="submit" class="btn" style="padding: 8px 20px; background-color: var(--accent-blue); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
-                            <i class="fas fa-filter"></i> Apply Filters
-                        </button>
-                        <a href="{{ url_for('my_reviews') }}" class="btn" style="padding: 8px 20px; background-color: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; text-decoration: none;">
-                            <i class="fas fa-redo"></i> Reset
-                        </a>
-                    </div>
+    <!-- Filter Section -->
+    
+    <div class="filter-section" style="background-color: var(--bg-light); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h4 style="color: var(--text-primary); margin-bottom: 15px;">
+            <i class="fas fa-filter"></i> Filter & Sort Reviews
+        </h4>
+        <form method="GET" action="{{ url_for('my_reviews') }}">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label for="category_filter" class="form-label" style="color: var(--text-primary);">Category</label>
+                    <select class="form-control" id="category_filter" name="category" 
+                            style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                            <option value="{{ category['id'] }}" {% if request.args.get('category') == category['id']|string %}selected{% endif %}>{{ category['name'] }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-            </form>
-        </div>
-        
+                <div class="col-md-2">
+                    <label for="sentiment_filter" class="form-label" style="color: var(--text-primary);">Sentiment</label>
+                    <select class="form-control" id="sentiment_filter" name="sentiment" 
+                            style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+                        <option value="">All</option>
+                        <option value="POSITIVE" {% if request.args.get('sentiment') == 'POSITIVE' %}selected{% endif %}>Positive</option>
+                        <option value="NEGATIVE" {% if request.args.get('sentiment') == 'NEGATIVE' %}selected{% endif %}>Negative</option>
+                        <option value="NEUTRAL" {% if request.args.get('sentiment') == 'NEUTRAL' %}selected{% endif %}>Neutral</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="min_confidence" class="form-label" style="color: var(--text-primary);">Min Confidence</label>
+                    <input type="number" class="form-control" id="min_confidence" name="min_confidence" 
+                           min="0" max="1" step="0.1" value="{{ request.args.get('min_confidence', '') }}"
+                           placeholder="0.0 - 1.0"
+                           style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+                </div>
+                <div class="col-md-2">
+                    <label for="start_date" class="form-label" style="color: var(--text-primary);">Start Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" 
+                           value="{{ request.args.get('start_date', '') }}"
+                           style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; color-scheme: dark;">
+                </div>
+                <div class="col-md-2">
+                    <label for="end_date" class="form-label" style="color: var(--text-primary);">End Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" 
+                           value="{{ request.args.get('end_date', '') }}"
+                           style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; color-scheme: dark;">
+                </div>
+                <div class="col-md-2">
+                    <label for="sort" class="form-label" style="color: var(--text-primary);">Sort By</label>
+                    <select class="form-control" id="sort" name="sort" 
+                            style="padding: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+                        <option value="date" {% if request.args.get('sort') == 'date' %}selected{% endif %}>Date</option>
+                        <option value="confidence" {% if request.args.get('sort') == 'confidence' %}selected{% endif %}>Confidence</option>
+                        <option value="sentiment" {% if request.args.get('sort') == 'sentiment' %}selected{% endif %}>Sentiment</option>
+                    </select>
+                </div>
+                <div class="col-md-12 d-flex gap-2">
+                    <button type="submit" class="btn" style="padding: 8px 20px; background-color: var(--accent-blue); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                        <i class="fas fa-filter"></i> Apply Filters
+                    </button>
+                    <a href="{{ url_for('admin_dashboard.analysis_page') }}" class="btn" style="padding: 8px 20px; background-color: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; text-decoration: none;">
+                        <i class="fas fa-redo"></i> Reset
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <section class="table-container card">
         <table>
             <thead>
                 <tr>
@@ -258,8 +274,9 @@
                     <td class="actions">
                         <form action="{{ url_for('delete_raw_text', text_id=text.id) }}" 
                               method="POST" 
-                              onsubmit="return confirm('Are you sure?');">
-                            <button type="submit" class="btn-delete">Delete</button>
+                              class="delete-form"
+                              data-review-id="{{ text.id }}">
+                            <button type="button" class="btn-delete" onclick="showDeleteConfirmation({{ text.id }})">Delete</button>
                         </form>
                     </td>
                 </tr>
@@ -744,5 +761,183 @@
                 grid-template-columns: 1fr !important;
             }
         }
+
+        /* Delete Confirmation Modal */
+        #deleteConfirmModal .modal-content {
+            max-width: 450px;
+            text-align: center;
+        }
+
+        #deleteConfirmModal .modal-body {
+            padding: 30px;
+        }
+
+        #deleteConfirmModal .warning-icon {
+            font-size: 4rem;
+            color: #dc3545;
+            margin-bottom: 20px;
+        }
+
+        #deleteConfirmModal .modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+
+        #deleteConfirmModal .btn-confirm-delete {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #deleteConfirmModal .btn-confirm-delete:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+        }
+
+        #deleteConfirmModal .btn-cancel {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #deleteConfirmModal .btn-cancel:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        /* File Upload Feedback */
+        .file-selected {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, transparent 100%);
+            border: 2px solid #28a745;
+            border-radius: 8px;
+            margin-top: 10px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .file-selected span {
+            flex: 1;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .btn-remove-file {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid #dc3545;
+            color: #dc3545;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .btn-remove-file:hover {
+            background: #dc3545;
+            color: white;
+            transform: rotate(90deg);
+        }
     </style>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteConfirmModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="warning-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h2 style="color: var(--text-primary); margin-bottom: 15px;">Delete Review?</h2>
+                <p style="color: var(--text-secondary); font-size: 1rem;">
+                    Are you sure you want to delete this review? This action cannot be undone.
+                </p>
+                <div class="modal-buttons">
+                    <button class="btn-cancel" onclick="closeDeleteConfirmation()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button class="btn-confirm-delete" onclick="confirmDelete()">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let reviewToDelete = null;
+
+        function showDeleteConfirmation(reviewId) {
+            reviewToDelete = reviewId;
+            document.getElementById('deleteConfirmModal').style.display = 'block';
+        }
+
+        function closeDeleteConfirmation() {
+            reviewToDelete = null;
+            document.getElementById('deleteConfirmModal').style.display = 'none';
+        }
+
+        function confirmDelete() {
+            if (reviewToDelete) {
+                const form = document.querySelector(`form[data-review-id="${reviewToDelete}"]`);
+                if (form) {
+                    form.submit();
+                }
+            }
+        }
+
+        // File upload feedback
+        function updateFileName(input) {
+            const fileName = input.files[0] ? input.files[0].name : '';
+            if (fileName) {
+                document.getElementById('csv-file-hint').style.display = 'none';
+                document.getElementById('csv-file-selected').style.display = 'flex';
+                document.getElementById('csv-file-name').textContent = fileName;
+            }
+        }
+
+        function clearFile(inputId) {
+            const input = document.getElementById(inputId);
+            input.value = '';
+            document.getElementById('csv-file-hint').style.display = 'flex';
+            document.getElementById('csv-file-selected').style.display = 'none';
+            document.getElementById('csv-file-name').textContent = '';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('deleteConfirmModal');
+            if (event.target === modal) {
+                closeDeleteConfirmation();
+            }
+        }
+    </script>
 {% endblock %}

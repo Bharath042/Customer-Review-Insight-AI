@@ -156,8 +156,8 @@ class NLPProcessor:
         text = re.sub(r'\s+', ' ', text).strip()
         return text
 
-    def analyze_sentiment(self, text):
-        logger.debug(f"analyze_sentiment called for text: '{text[:50]}...'")
+    def analyze_sentiment(self, text, aspect_keyword=None):
+        logger.debug(f"analyze_sentiment called for text: '{text[:50]}...' (aspect: {aspect_keyword})")
         # ADDED CRITICAL CHECK: Ensure sentiment_analyzer is initialized HERE
         if not self.sentiment_analyzer:
             logger.warning("Sentiment analyzer is not initialized. Attempting re-initialization.")
@@ -169,6 +169,66 @@ class NLPProcessor:
         if not self.sentiment_analyzer:
             logger.error("Sentiment analyzer is still not initialized after re-attempt. Returning default (POSITIVE as fallback).")
             return {"label": "POSITIVE", "score": 0.0}
+
+        # Check for strong neutral phrases first (only exact matches)
+        text_lower = text.lower()
+        strong_neutral_phrases = [
+            'neither good nor bad', 'neither cheap nor expensive', 
+            'neither positive nor negative', 'neither great nor terrible'
+        ]
+        
+        # Only override for very strong neutral indicators
+        for phrase in strong_neutral_phrases:
+            if phrase in text_lower:
+                logger.debug(f"Strong neutral phrase '{phrase}' found in text. Returning NEUTRAL.")
+                return {"label": "NEUTRAL", "score": 0.7}
+        
+        # Check for clearly negative price-related phrases
+        negative_price_patterns = [
+            ('high', ['price', 'cost', 'expensive']),
+            ('expensive', ['price', 'cost', 'high']),
+            ('overpriced', []),
+            ('costly', []),
+            ('pricey', [])
+        ]
+        
+        # Check if analyzing a price-related aspect
+        is_price_aspect = aspect_keyword and any(word in aspect_keyword.lower() for word in ['price', 'cost', 'pricing'])
+        logger.debug(f"Price aspect check: aspect_keyword={aspect_keyword}, is_price_aspect={is_price_aspect}")
+        
+        # Check for softeners that make it neutral instead of negative
+        softeners = ['a bit', 'a little', 'slightly', 'somewhat', 'kind of', 'sort of', 'fairly', 'rather']
+        has_softener = any(softener in text_lower for softener in softeners)
+        
+        for neg_word, context_words in negative_price_patterns:
+            if neg_word in text_lower:
+                logger.debug(f"Found '{neg_word}' in text. Checking if price-related...")
+                # Check if it's about price/cost (either in text OR analyzing price aspect)
+                if is_price_aspect or not context_words or any(ctx in text_lower for ctx in context_words):
+                    logger.debug(f"Price context confirmed. Checking negation and softeners...")
+                    # Check for negation (e.g., "not high")
+                    if 'not ' + neg_word in text_lower or "n't " + neg_word in text_lower:
+                        logger.debug(f"Negation found, skipping.")
+                        continue
+                    # Check for softeners (e.g., "a bit high")
+                    if has_softener:
+                        logger.debug(f"Softener found ('{[s for s in softeners if s in text_lower]}'), treating as neutral, skipping negative override.")
+                        continue
+                    # Strong negative without softeners
+                    logger.info(f"✓ NEGATIVE PRICE DETECTED: '{neg_word}' (aspect: {aspect_keyword}, text: '{text_lower}'). Returning NEGATIVE.")
+                    return {"label": "NEGATIVE", "score": 0.75}
+        
+        # Check for single neutral keywords (but only if they're the main descriptor)
+        neutral_keywords = ['average', 'okay', 'ok', 'standard', 'normal', 'typical', 'usual', 'regular', 'moderate']
+        
+        # Only apply if the keyword is prominent and not mixed with strong positive/negative words
+        has_neutral_keyword = any(keyword in text_lower for keyword in neutral_keywords)
+        has_strong_negative = any(word in text_lower for word in ['terrible', 'awful', 'horrible', 'worst', 'disappointing', 'poor', 'bad'])
+        has_strong_positive = any(word in text_lower for word in ['excellent', 'amazing', 'great', 'awesome', 'fantastic', 'perfect', 'wonderful'])
+        
+        if has_neutral_keyword and not has_strong_negative and not has_strong_positive:
+            logger.debug(f"Neutral keyword found without strong sentiment words. Returning NEUTRAL.")
+            return {"label": "NEUTRAL", "score": 0.7}
 
         try:
             results = self.sentiment_analyzer(text)
@@ -182,18 +242,33 @@ class NLPProcessor:
             logger.debug(f"Extracted Scores Dict: {scores}")
 
             neg_score = scores.get('negative', 0.0)
+            neu_score = scores.get('neutral', 0.0)
             pos_score = scores.get('positive', 0.0)
-            logger.debug(f"Individual Scores: Neg={neg_score}, Pos={pos_score}")
+            logger.debug(f"Individual Scores: Neg={neg_score}, Neu={neu_score}, Pos={pos_score}")
 
-            final_label = 'POSITIVE'
-            final_score = pos_score
-
-            if neg_score > pos_score:
+            # Determine sentiment based on highest score
+            max_score = max(neg_score, neu_score, pos_score)
+            
+            # Only prefer neutral if it's clearly the highest OR if all scores are very close
+            score_diff = max_score - min(neg_score, neu_score, pos_score)
+            
+            if max_score == neu_score and neu_score > max(neg_score, pos_score):
+                # Neutral is clearly the highest
+                final_label = 'NEUTRAL'
+                final_score = neu_score
+            elif score_diff < 0.1:
+                # All scores are very close, prefer neutral
+                final_label = 'NEUTRAL'
+                final_score = neu_score
+            elif max_score == pos_score:
+                final_label = 'POSITIVE'
+                final_score = pos_score
+            elif max_score == neg_score:
                 final_label = 'NEGATIVE'
                 final_score = neg_score
             else:
-                final_label = 'POSITIVE'
-                final_score = pos_score
+                final_label = 'NEUTRAL'
+                final_score = neu_score
 
             logger.debug(f"Final Sentiment: Label={final_label}, Score={final_score}")
             return {"label": final_label, "score": final_score}
@@ -297,7 +372,7 @@ class NLPProcessor:
         if not aspect_keyword or aspect_start is None or aspect_end is None:
             # Fallback: analyze entire sentence
             logger.debug(f"Analyzing entire sentence (no aspect position): '{sentence[:50]}...'")
-            return self.analyze_sentiment(sentence)
+            return self.analyze_sentiment(sentence, aspect_keyword=aspect_keyword)
         
         # Extract context window: aspect + surrounding words (5 words before and after)
         words = sentence.split()
@@ -311,16 +386,27 @@ class NLPProcessor:
                 break
         
         if aspect_word_start is not None:
-            # Extract 5 words before and 5 words after the aspect
-            context_start = max(0, aspect_word_start - 5)
-            context_end = min(len(words), aspect_word_start + len(aspect_words) + 5)
+            # Extract 4 words before and 4 words after the aspect
+            context_start = max(0, aspect_word_start - 4)
+            context_end = min(len(words), aspect_word_start + len(aspect_words) + 4)
+            
+            # Stop at conjunctions like "but", "however", "although" to avoid mixing sentiments
+            # BUT only check AFTER the aspect, not before
+            conjunctions = ['but', 'however', 'although', 'though', 'yet', 'whereas']
+            
+            # Only check words AFTER aspect for conjunctions (to separate different sentiments)
+            for i in range(aspect_word_start + len(aspect_words), context_end):
+                if words[i].lower().rstrip(',') in conjunctions:
+                    context_end = i
+                    break
+            
             context = ' '.join(words[context_start:context_end])
             logger.debug(f"Aspect '{aspect_keyword}' context window: '{context}'")
-            return self.analyze_sentiment(context)
+            return self.analyze_sentiment(context, aspect_keyword=aspect_keyword)
         else:
             # Fallback if aspect not found in sentence
             logger.debug(f"Aspect '{aspect_keyword}' not found in sentence, analyzing full sentence")
-            return self.analyze_sentiment(sentence)
+            return self.analyze_sentiment(sentence, aspect_keyword=aspect_keyword)
 
 
     def highlight_review_aspects(self, review_content, aspects_data):
@@ -349,6 +435,8 @@ class NLPProcessor:
                 inline_style = "background-color: rgba(40, 167, 69, 0.2); color: #28a745; font-weight: bold;"
             elif aspect_obj.sentiment == "NEGATIVE":
                 inline_style = "background-color: rgba(220, 53, 69, 0.2); color: #dc3545; font-weight: bold;"
+            elif aspect_obj.sentiment == "NEUTRAL":
+                inline_style = "background-color: rgba(108, 117, 125, 0.35); color: #adb5bd; font-weight: bold; border: 1px solid rgba(108, 117, 125, 0.4);"
             
             highlighted_text.append(f'<span class="highlight-aspect" style="{inline_style}">{actual_highlight_text}</span>')
             
