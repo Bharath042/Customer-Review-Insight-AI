@@ -407,7 +407,7 @@ def my_reviews():
             aspect_ids = [a.id for a in Aspect.query.filter_by(category_id=category_id).all()]
             if aspect_ids:
                 # Filter reviews that have at least one aspect from this category
-                from models import AspectSentiment
+                # AspectSentiment is already imported at top of file
                 review_ids = db.session.query(AspectSentiment.raw_text_id).filter(
                     AspectSentiment.aspect_id.in_(aspect_ids)
                 ).distinct().all()
