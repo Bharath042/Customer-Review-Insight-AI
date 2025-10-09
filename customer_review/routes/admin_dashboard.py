@@ -352,6 +352,12 @@ def manage_aspect_categories():
     if request.method == 'POST':
         from models import AspectKeyword
         
+        # Prevent processing empty form submissions (double-submit issue)
+        if not request.form or not request.form.get('category_name'):
+            print("Empty form submission detected - ignoring")
+            # Return 204 No Content to stop the redirect loop
+            return ('', 204)
+        
         category_name = request.form.get('category_name', '').strip()
         category_description = request.form.get('category_description', '').strip()
 
