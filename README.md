@@ -425,13 +425,6 @@ Contributions are welcome! Please follow these steps:
 
 ---
 
-## 👥 Team
-
-- **Developer 1**: [Your Name] - Backend & NLP
-- **Developer 2**: [Teammate Name] - Frontend & UI
-- **Developer 3**: [Teammate Name] - Database & Testing
-
----
 
 ## 📝 License
 
